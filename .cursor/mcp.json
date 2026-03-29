@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "giterloper": {
+      "command": "bash",
+      "args": [
+        "scripts/cursor-mcp-giterloper-stdio.sh"
+      ],
+      "cwd": "/path/to/giterloper"
+    }
+  }
+}
