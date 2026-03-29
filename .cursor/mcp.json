@@ -3,9 +3,9 @@
     "giterloper": {
       "command": "bash",
       "args": [
-        "scripts/cursor-mcp-giterloper-stdio.sh"
+        "/home/user/workspace/giterloper/scripts/cursor-mcp-giterloper-stdio.sh"
       ],
-      "cwd": "/path/to/giterloper"
+      "cwd": "/home/user/workspace/giterloper"
     }
   }
 }
