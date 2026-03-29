@@ -16,6 +16,10 @@ This repository is a **reference boilerplate** for Cursor-focused workflows: age
 | **`.cursor/agents/`** | Definitions meant to run **inside Cursor’s Task tool**, not as pasted step lists. |
 | **`scripts/ticket` + `./tk`** | Vendored [wedow/ticket](https://github.com/wedow/ticket) CLI — markdown tickets under **`.tickets/`** (optional **`TICKETS_DIR`** in **`.env`**). |
 
+## MCP (`giterloper`)
+
+**`.cursor/mcp.json`** in this boilerplate is only an example. **You must edit it** so the **giterloper** server points at **your** install (e.g. adjust `cwd` and any script paths), **or** configure it to use a **hosted / cloud URL** for giterloper if that’s how you run it, **or delete the file** (or remove the `giterloper` entry) if you do not use that MCP server. Until you do, paths will not match your machine.
+
 ## Docs in this repo
 
 - **[AGENTS.md](./AGENTS.md)** — Ticket CLI usage, skills vs agents, git branch expectations, environment.
