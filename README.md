@@ -7,6 +7,7 @@ This repository is a **small, portable reference** for running [OpenSpec](https:
 | Path | Role |
 |------|------|
 | **`OPENSPEC_FLOW.md`** | Workflow overview and **`OPENSPEC_FLOW_VERSION`** (bundle version). |
+| **`CHANGELOG.md`** | Human-readable history of bundle releases (keep aligned with **`OPENSPEC_FLOW_VERSION`**). |
 | **`AGENTS.md`** | Agent rules: `openspec/` discipline, Task-only apply agents, git posture. |
 | **`.cursor/skills/osf-*/`** | Slash-driven skills (`/osf-propose`, `/osf-explore`, …). |
 | **`.cursor/agents/osf-*.md`** | Task definitions for apply/finish/abort. |
@@ -30,3 +31,5 @@ Your **application** code and **`openspec/`** tree live in whatever project you 
 ## Versioning
 
 The integration is versioned as a **single bundle** via **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. Bump that field when you change any shipped skill, agent, or the normative workflow text so consumers can detect upgrades.
+
+**`CHANGELOG.md`** records notable bundle changes in prose; for automation and drift checks, compare **`OPENSPEC_FLOW_VERSION`** (and keep the changelog entry aligned when you release).

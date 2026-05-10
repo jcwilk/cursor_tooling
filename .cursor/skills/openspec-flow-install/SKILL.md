@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 ## Definitions
 
-- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, **`spawn-subagent/`**, **`openspec-flow-install/`**, and **`.cursor/agents/osf-*.md`**.
+- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, **`spawn-subagent/`**, **`openspec-flow-install/`**, and **`.cursor/agents/osf-*.md`**.
 - **Target repo:** Project that should gain or update OSF. Must have `.cursor/skills/` and `.cursor/agents/` (create if missing).
 
 ## Before changing anything
@@ -26,6 +26,7 @@ disable-model-invocation: true
    ```
    OPENSPEC_FLOW.md
    AGENTS.md
+   CHANGELOG.md                 # human-readable bundle history; optional but recommended
    README.md                    # optional to copy; useful for onboarding
    .cursor/skills/osf-explore/
    .cursor/skills/osf-explain/
@@ -88,6 +89,7 @@ rsync -a --delete "$REF/.cursor/skills/spawn-subagent/" "$TGT/.cursor/skills/spa
 rsync -a --delete "$REF/.cursor/skills/openspec-flow-install/" "$TGT/.cursor/skills/openspec-flow-install/"
 install -m644 "$REF/.cursor/agents/osf-apply-"*.md "$TGT/.cursor/agents/"
 install -m644 "$REF/OPENSPEC_FLOW.md" "$TGT/OPENSPEC_FLOW.md"
+install -m644 "$REF/CHANGELOG.md" "$TGT/CHANGELOG.md"
 # AGENTS.md and README.md: merge manually or copy if absent
 ```
 

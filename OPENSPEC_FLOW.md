@@ -107,6 +107,7 @@ If execution cannot honestly match approved intent, the worker invokes **`osf-ap
 
 ## Further reading
 
+- **`CHANGELOG.md`** — release history for this bundle (pair with **`OPENSPEC_FLOW_VERSION`** bumps).
 - [OpenSpec — Concepts](https://github.com/Fission-AI/OpenSpec/blob/main/docs/concepts.md) (canonical).
 - [OpenSpec — Getting Started](https://github.com/Fission-AI/OpenSpec/blob/main/docs/getting-started.md).
 - **`.cursor/skills/osf-propose/reference/concepts.md`** — offline mirror with refresh recipe.

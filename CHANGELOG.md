@@ -1,0 +1,12 @@
+# Changelog
+
+All notable changes to this **OpenSpec Flow reference bundle** (docs under this repo root plus `.cursor/skills/osf-*`, `.cursor/agents/osf-*`, and related companion skills documented in `OPENSPEC_FLOW.md`) are recorded here.
+
+The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
+
+## [1.0.0] — 2026-05-10
+
+### Added
+
+- Initial **OpenSpec Flow** reference bundle for Cursor: `OPENSPEC_FLOW.md`, generalized **`AGENTS.md`**, skills `osf-explore`, `osf-propose`, `osf-explain`, `osf-apply-changes`, `openspec-flow-install`, Task agents `osf-apply-start`, `osf-apply-finish`, `osf-apply-abort`, plus companion `persist` and `spawn-subagent` wiring as documented in `OPENSPEC_FLOW.md`.
+- **`CHANGELOG.md`** to track bundle changes alongside **`OPENSPEC_FLOW_VERSION`**.
