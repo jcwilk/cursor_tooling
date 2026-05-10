@@ -5,12 +5,12 @@ description: Explicitly launches Cursor Task subagents from `.cursor/agents/*.md
 
 # /spawn_subagent — Delegate to Task subagents
 
-**Purpose:** When this skill applies, the **current** agent **must** spawn the requested workflow using the **Task** tool with the matching **`subagent_type`**. **Do not** open **`.cursor/agents/<name>.md`** and execute its steps in this thread—that collapses delegation and breaks isolation (see **`AGENTS.md`**, Skills vs agents).
+**Purpose:** When this skill applies, the **current** agent **must** spawn the requested workflow using the **Task** tool with the matching **`subagent_type`**. **Do not** open **`.cursor/agents/<name>.md`** and execute its steps in this thread—that collapses delegation and breaks isolation (see **`AGENTS.md`** — **Task delegation**).
 
 ## Map path to Task
 
-- **`.cursor/agents/<stem>.md`** → **`subagent_type`**: **`<stem>`** (filename without `.md`, e.g. `verifier`, `work-next`, `critique-and-refine`, `spec-change`, `critiquer`).
-- Pass a **self-contained** `prompt` so the subagent can complete without relying on unstated parent context; paste any needed context, file paths, ticket ids, or user goals into that prompt.
+- **`.cursor/agents/<stem>.md`** → **`subagent_type`**: **`<stem>`** (filename without `.md`, e.g. `osf-apply-start`, `osf-apply-finish`).
+- Pass a **self-contained** `prompt` so the subagent can complete without relying on unstated parent context; paste any needed context, file paths, issue ids, or user goals into that prompt.
 
 ## Triggers
 
@@ -22,7 +22,7 @@ description: Explicitly launches Cursor Task subagents from `.cursor/agents/*.md
 | Situation | Behavior |
 |-----------|----------|
 | **Default** | **Serial:** one Task at a time; wait for each subagent to finish before starting the next. Applies when the user chains several **`/spawn_subagent`** lines, lists multiple **`@`** agent paths without parallel wording, or says “then” / “after that.” |
-| **Parallel** | **Only** when the user explicitly asks for parallel execution (e.g. “in parallel,” “concurrently,” “at the same time,” “parallel spawn”). Then issue **multiple Task calls in one parent turn**—one per requested agent—with the same rules as other parallel subagent workflows (e.g. **`cross-critique`**). |
+| **Parallel** | **Only** when the user explicitly asks for parallel execution (e.g. “in parallel,” “concurrently,” “at the same time,” “parallel spawn”). Then issue **multiple Task calls in one parent turn**—one per requested agent—with the same isolation rules as other parallel subagent workflows (e.g. multiple **`osf-apply-start`** workers for different changes). |
 
 If intent is ambiguous, **default to serial** and briefly state that choice.
 

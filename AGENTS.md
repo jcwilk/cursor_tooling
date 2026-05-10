@@ -1,24 +1,37 @@
-THIS IS A SHARED, ABSTRACT AGENTS.MD - IT WAS PROBABLY REFERENCED FROM A PROJECT'S MAIN AGENTS.MD
-CONSIDER THESE DIRECTIVES LAW, BUT THE PROJECT'S MAIN AGENTS.MD SHOULD OVERRIDE AS PRIORITY IN CASE OF CONFLICT
+# Agents and OpenSpec Flow
 
-Unless directly asked to, DO NOT CHANGE FILES IN `cursor_tooling` - ALL TASKS SHOULD BE ASSUMED TO TAKE PLACE IN THE MAIN PROJECT
+This file is the **operational contract** for agents working in a repository that ships or consumes the OpenSpec Flow bundle. Project owners may extend it with domain rules (security, environments, release process).
 
-# Agents and automation
+## OpenSpec directory discipline
 
-## Ticket tracker (`wedow/ticket`)
+- **Living specs** under **`openspec/specs/`** change **only** through the OpenSpec **archive** path driven by **`osf-apply-finish`** (or an equivalent explicit human-run archive with the same outcome). Do not hand-edit living specs to “catch up” implementation.
+- **Intent** during apply lives under **`openspec/changes/<name>/`**. During **`osf-apply-start`**, routine edits there are **`tasks.md` checkboxes** only unless the human explicitly widens scope.
+- Skills **`/osf-propose`** and **`/osf-explore`** must not merge to the default branch or archive changes **unless** the human clearly asked for apply/finish in the same turn.
 
-This repo uses **[wedow/ticket](https://github.com/wedow/ticket)** — a git-friendly, markdown-on-disk issue tracker aimed at AI-assisted workflows. Tickets live under **`.tickets/`** as `.md` files with YAML front matter.
+## Task delegation
 
-- **Run the CLI via `./tk`** — a symlink to **`scripts/ticket`** (the upstream `ticket` script vendored here). That keeps skills and agents aligned on one entry point.
-- **Discover commands when you need them:** run **`./tk help`**. Prefer that (or ask in chat) over memorizing or copy-pasting full command lists into docs; upstream evolves, and `./tk help` stays current.
-- **Optional:** set **`TICKETS_DIR`** to point at a different tickets directory (see **`.env.example`**). Default is **`.tickets/`** in the repo root.
+- **Chat skills** live under **`.cursor/skills/*/SKILL.md`** — they steer the conversational agent’s procedure.
+- **Task agents** live under **`.cursor/agents/<name>.md`** — Cursor runs them via the **Task** tool with **`subagent_type`** equal to **`name`**. Opening an agent definition and replaying its steps in the chat **breaks isolation**; see **`.cursor/skills/spawn-subagent/SKILL.md`**.
 
-The copy in **`scripts/ticket`** is MIT-licensed; see **`scripts/ticket-LICENSE.txt`**. To refresh from upstream, replace **`scripts/ticket`** with the latest **`ticket`** script from the [wedow/ticket](https://github.com/wedow/ticket) repository and re-apply any small local patches noted in git history if needed.
+OSF apply workers MUST use Tasks:
 
-## Git branches and `main` (default)
+- **`osf-apply-start`**, **`osf-apply-finish`**, and **`osf-apply-abort`** MUST be invoked via the **Task** tool with the matching **`subagent_type`**. Do not read **`.cursor/agents/osf-*.md`** and replay them in the parent thread.
+- Follow **`.cursor/skills/spawn-subagent/SKILL.md`** and **`.cursor/skills/osf-apply-changes/SKILL.md`**.
 
-Unless the user explicitly asks otherwise: **commit and push on the current branch only** — do **not** merge into **`main`**, fast-forward **`main`**, or assume releases.
+## Git branches and default branch
+
+Unless the user explicitly asks otherwise: **commit and push on the current working branch** for day-to-day work. **`osf-apply-finish`** merges the execution branch into the repository’s **default branch** when completing a change—only do that within that finish workflow or when the user explicitly requests it.
+
+## Safety and environments
+
+- No destructive actions on machines, data, or shared infrastructure **unless** the human named the target and risk is acceptable.
+- Honor project-specific allowlists, staging requirements, and secrets handling; when in doubt, stop and ask.
 
 ## Environment
 
-**`.env`** for local secrets (e.g. API keys used by optional subagents). **`.env`** is gitignored.
+Use **`.env`** for local secrets (API keys for optional tools). **`.env`** should remain gitignored in consuming projects.
+
+## Reference
+
+- **`OPENSPEC_FLOW.md`** — narrative, vocabulary, and **`OPENSPEC_FLOW_VERSION`** for the bundle.
+- **`.cursor/skills/openspec-flow-install/SKILL.md`** — install or upgrade this bundle into another project.

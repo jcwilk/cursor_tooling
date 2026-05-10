@@ -28,8 +28,7 @@ Be **explicit and verbose**. Optimize for both GitHub and agentic usage.
 
 - **Subject line** (first line): Imperative mood, ~50 chars. Summarize *what* changed, not how. Example: `Align rl cost env vars to CLOUDFLARE_*` not `Fix env vars`.
 - **Body**: Add context when helpful — *why* the change was made, what problem it solves, or what was considered. GitHub renders the body in commit and PR views; agents use it to trace activity.
-- **Ticket references**: If the work relates to a ticket (e.g. from `./tk`), include the ID in the subject or body. Example: `til-abc1` or `(til-abc1)`. This helps agents and humans link commits to tickets.
-- **Issue/PR linking**: Use `Fixes #123` or `Refs #123` in the body when relevant; GitHub will auto-link.
+- **Issue/PR linking**: Use `Fixes #123` or `Refs #123` in the body when relevant; hosts like GitHub will auto-link. If the project uses an external tracker id, include it in the subject or body when helpful.
 - **Avoid**: Vague messages like "fix stuff", "updates", "WIP". Prefer messages that stand alone without reading the diff.
 
 ## Rules

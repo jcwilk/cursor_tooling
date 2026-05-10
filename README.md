@@ -1,35 +1,32 @@
-# Cursor tooling (reference boilerplate)
+# OpenSpec Flow — Cursor reference bundle
 
-This repository is a **reference boilerplate** for Cursor-focused workflows: agents, skills, ticket tracking, and small automation hooks you can copy, adapt, or **symlink into a user-wide Cursor config** so the same patterns work across many projects.
+This repository is a **small, portable reference** for running [OpenSpec](https://github.com/Fission-AI/OpenSpec) with **Cursor** skills and **Task** subagents: propose → apply on isolated branches → finish (archive + merge) or abort.
 
-## What it is for
+## Contents
 
-- **Symlink source for global tooling** — Point `~/.cursor/skills/`, `~/.cursor/agents/`, or individual files at copies or symlinks of the contents here (or a fork) so one maintained tree backs every workspace. Keep secrets in each project’s **`.env`** (see **`.env.example`**); this repo’s **`.gitignore`** excludes **`.env`**.
-- **Research and automation** — Use it as a sandbox for MCP setup (e.g. **`.cursor/mcp.json`** patterns), scripted flows (**`./tk`** for tickets), and experiments with Cursor’s Task tool and subagents without mixing them into an application codebase.
-- **Designing new agents and skills** — **`.cursor/agents/`** holds Task-oriented subagent definitions; **`.cursor/skills/`** holds short, repeatable workflows for the main chat agent. Iterate here, then promote stable pieces to your user-wide **`~/.cursor/`** tree or into other repos.
-
-## What’s in the box
-
-| Area | Role |
+| Path | Role |
 |------|------|
-| **`.cursor/skills/`** | Workflow skills (`SKILL.md` files) the primary agent can follow. |
-| **`.cursor/agents/`** | Definitions meant to run **inside Cursor’s Task tool**, not as pasted step lists. |
-| **`scripts/ticket` + `./tk`** | Vendored [wedow/ticket](https://github.com/wedow/ticket) CLI — markdown tickets under **`.tickets/`** (optional **`TICKETS_DIR`** in **`.env`**). |
+| **`OPENSPEC_FLOW.md`** | Workflow overview and **`OPENSPEC_FLOW_VERSION`** (bundle version). |
+| **`AGENTS.md`** | Agent rules: `openspec/` discipline, Task-only apply agents, git posture. |
+| **`.cursor/skills/osf-*/`** | Slash-driven skills (`/osf-propose`, `/osf-explore`, …). |
+| **`.cursor/agents/osf-*.md`** | Task definitions for apply/finish/abort. |
+| **`.cursor/skills/persist/`** | Commit/push hygiene used by propose/finish flows. |
+| **`.cursor/skills/spawn-subagent/`** | Required for real Task delegation. |
+| **`.cursor/skills/openspec-flow-install/`** | **Install or upgrade** this bundle into another repo (compare versions, copy files). |
 
-## MCP (`giterloper`)
+Your **application** code and **`openspec/`** tree live in whatever project you attach this bundle to; initialize OpenSpec in that project with the upstream CLI when you are ready.
 
-**`.cursor/mcp.json`** in this boilerplate is only an example. **You must edit it** so the **giterloper** server points at **your** install (e.g. adjust `cwd` and any script paths), **or** configure it to use a **hosted / cloud URL** for giterloper if that’s how you run it, **or delete the file** (or remove the `giterloper` entry) if you do not use that MCP server. Until you do, paths will not match your machine.
+## Prerequisites
 
-## Docs in this repo
+- Node.js **20.19+** (for `npx @fission-ai/openspec@latest …`).
+- Cursor with **Task** subagents enabled.
 
-- **[AGENTS.md](./AGENTS.md)** — Ticket CLI usage, skills vs agents, git branch expectations, environment.
-- **[CONVENTIONS.md](./CONVENTIONS.md)** — Project coding conventions (fill in as you extend the boilerplate).
+## Quick start (in a consumer project)
 
-## Quick start
+1. Follow **`/openspec-flow-install`** (skill **`openspec-flow-install`**) to copy or refresh files from this reference into your project’s tree.
+2. Ensure **`OPENSPEC_FLOW.md`** at the project root records the **`OPENSPEC_FLOW_VERSION`** you installed (the install skill explains how to compare and detect drift).
+3. Use **`/osf-explore`** and **`/osf-propose`** with your project’s **`openspec/`** layout.
 
-```bash
-./tk help          # ticket commands (after .tickets exists or TICKETS_DIR is set)
-cp .env.example .env   # then add any API keys optional agents need
-```
+## Versioning
 
-Clone or fork this repo, customize, and wire it into **`~/.cursor/`** however fits your setup—this tree is meant to stay small, readable, and easy to reuse.
+The integration is versioned as a **single bundle** via **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. Bump that field when you change any shipped skill, agent, or the normative workflow text so consumers can detect upgrades.
