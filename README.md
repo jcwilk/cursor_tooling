@@ -12,7 +12,6 @@ This repository is a **small, portable reference** for running [OpenSpec](https:
 | **`.cursor/skills/osf-*/`** | Slash-driven skills (`/osf-propose`, `/osf-explore`, …). |
 | **`.cursor/agents/osf-*.md`** | Task definitions for apply/finish/abort. |
 | **`.cursor/skills/persist/`** | Commit/push hygiene used by propose/finish flows. |
-| **`.cursor/skills/spawn-subagent/`** | Required for real Task delegation. |
 | **`.cursor/skills/openspec-flow-install/`** | **Install or upgrade** this bundle into another repo (compare versions, copy files). |
 
 Your **application** code and **`openspec/`** tree live in whatever project you attach this bundle to; initialize OpenSpec in that project with the upstream CLI when you are ready.

@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 ## Definitions
 
-- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, **`spawn-subagent/`**, **`openspec-flow-install/`**, and **`.cursor/agents/osf-*.md`**.
+- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, **`openspec-flow-install/`**, and **`.cursor/agents/osf-*.md`**.
 - **Target repo:** Project that should gain or update OSF. Must have `.cursor/skills/` and `.cursor/agents/` (create if missing).
 
 ## Before changing anything
@@ -33,7 +33,6 @@ disable-model-invocation: true
    .cursor/skills/osf-propose/   # include reference/concepts.md
    .cursor/skills/osf-apply-changes/
    .cursor/skills/persist/
-   .cursor/skills/spawn-subagent/
    .cursor/skills/openspec-flow-install/
    .cursor/agents/osf-apply-start.md
    .cursor/agents/osf-apply-finish.md
@@ -85,7 +84,6 @@ rsync -a --delete "$REF/.cursor/skills/osf-explain/" "$TGT/.cursor/skills/osf-ex
 rsync -a --delete "$REF/.cursor/skills/osf-propose/" "$TGT/.cursor/skills/osf-propose/"
 rsync -a --delete "$REF/.cursor/skills/osf-apply-changes/" "$TGT/.cursor/skills/osf-apply-changes/"
 rsync -a --delete "$REF/.cursor/skills/persist/" "$TGT/.cursor/skills/persist/"
-rsync -a --delete "$REF/.cursor/skills/spawn-subagent/" "$TGT/.cursor/skills/spawn-subagent/"
 rsync -a --delete "$REF/.cursor/skills/openspec-flow-install/" "$TGT/.cursor/skills/openspec-flow-install/"
 install -m644 "$REF/.cursor/agents/osf-apply-"*.md "$TGT/.cursor/agents/"
 install -m644 "$REF/OPENSPEC_FLOW.md" "$TGT/OPENSPEC_FLOW.md"

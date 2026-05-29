@@ -33,13 +33,13 @@ Higher-level narrative, vocabulary, and slash-command overview: **`OPENSPEC_FLOW
 ## Cursor integration and nomenclature
 
 - **Chat skills** live under **`.cursor/skills/*/SKILL.md`** — they steer the conversational agent’s procedure.
-- **Task agents** live under **`.cursor/agents/<name>.md`** — Cursor runs them via the **Task** tool with **`subagent_type`** equal to **`name`**. Opening an agent definition and replaying its steps in chat **breaks isolation**; see **`.cursor/skills/spawn-subagent/SKILL.md`**.
+- **Task agents** live under **`.cursor/agents/<name>.md`** — Cursor runs them via the **Task** tool with **`subagent_type`** equal to **`name`**. Opening an agent definition and replaying its steps in the parent thread **breaks isolation**; do not inline **`osf-apply-*`** workflows as a substitute for Task delegation.
 - In this bundle, OpenSpec workflow artifacts use the **`osf-*`** prefix — skills at **`.cursor/skills/osf-*/SKILL.md`** and apply/finish/abort agents at **`.cursor/agents/osf-apply-*.md`**. Consumers may rely on that naming when installing the bundle.
 
 **OSF apply workers MUST use Tasks:**
 
 - **`osf-apply-start`**, **`osf-apply-finish`**, and **`osf-apply-abort`** MUST be invoked via the **Task** tool with the matching **`subagent_type`**. Do not read **`.cursor/agents/osf-*.md`** and replay them in the parent thread.
-- Follow **`.cursor/skills/spawn-subagent/SKILL.md`** and **`.cursor/skills/osf-apply-changes/SKILL.md`**.
+- Follow **`.cursor/skills/osf-apply-changes/SKILL.md`**.
 
 ## Git branches and default branch
 

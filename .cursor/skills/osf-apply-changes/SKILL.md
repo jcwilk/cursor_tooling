@@ -8,9 +8,7 @@ disable-model-invocation: true
 
 This skill is **just orchestration**. Per-change implementation (branch setup, work queue, validation, finish/abort delegation) lives entirely inside the **`osf-apply-start`** agent.
 
-## Non-negotiable: real subagents
-
-Read **`.cursor/skills/spawn-subagent/SKILL.md`**.
+## Non-negotiable: Task-only subagents
 
 ### `osf-apply-start` is **Task-only** — **never** inline
 

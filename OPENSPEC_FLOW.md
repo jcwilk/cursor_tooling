@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.0.0"
+OPENSPEC_FLOW_VERSION: "1.0.1"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -12,7 +12,7 @@ This repository distributes a **reference OpenSpec Flow (OSF)** bundle for **Cur
 
 OpenSpec ([Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec)) is the spec and change-management layer. Cursor skills and Task subagents wrap it so reviewers invoke high-level flows without memorizing CLI flags.
 
-**Bundle version:** **`OPENSPEC_FLOW_VERSION`** in the YAML front matter above identifies the **entire integration** (docs + `.cursor/skills/osf-*` + `.cursor/agents/osf-*` + companions like **`persist`** and **`spawn-subagent`**). Consumers should compare it to their own recorded version (often copied into **`OPENSPEC_FLOW.md`**) before upgrading; see **`/openspec-flow-install`**.
+**Bundle version:** **`OPENSPEC_FLOW_VERSION`** in the YAML front matter above identifies the **entire integration** (docs + `.cursor/skills/osf-*` + `.cursor/agents/osf-*` + companion **`persist`**). Consumers should compare it to their own recorded version (often copied into **`OPENSPEC_FLOW.md`**) before upgrading; see **`/openspec-flow-install`**.
 
 ## Prerequisites
 
@@ -92,7 +92,7 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 | **`/osf-apply-finish`** | Subagent | Verify, archive, merge default branch, push. |
 | **`/osf-apply-abort`** | Subagent | Stop safely; preserve investigation; debrief human. |
 
-Requires **`.cursor/skills/spawn-subagent/SKILL.md`** — **`osf-apply-*`** MUST run via the Task tool.
+**`osf-apply-*`** MUST run via the Task tool; do not replay **`.cursor/agents/osf-apply-*.md`** in the parent thread (see **`osf-apply-changes`** and **`AGENTS.md`**).
 
 ## Standard flow
 
