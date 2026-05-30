@@ -55,6 +55,22 @@ Unless the user explicitly asks otherwise: **commit and push on the current work
 
 Use **`.env`** for local secrets (API keys for optional tools). **`.env`** should remain gitignored in consuming projects.
 
+## Conversation sleuths
+
+Human-defined **sleuth** lenses summarize local Cursor agent transcripts into progressive, machine-local artifacts. They complement OpenSpec living specs (conversation archaeology, not behavioral contracts).
+
+| Location | Role |
+|----------|------|
+| **`.sleuths/queries/<id>.yaml`** | Lens definition (what to extract) |
+| **`.sleuths/<id>/summary.md`** | Agent-readable summary (may be stale) |
+| **`.sleuths/<id>/checkpoint.yaml`** | Incremental processing cursor |
+
+- Before guessing about prior decisions, bugs, or migrations discussed in past agent sessions, **read relevant `.sleuths/*/summary.md`** when they exist.
+- **Refresh is human-only in v1** — do not run sleuth refresh unless the human explicitly asks (skill **`/sleuths`**).
+- **`.sleuths/` is gitignored** and may contain secrets from transcripts — **never commit** it.
+
+One-time local build: **`.cursor/build-local-tools.sh`**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
+
 ## Reference
 
 - **`OPENSPEC_FLOW.md`** — narrative, vocabulary, **`OPENSPEC_FLOW_VERSION`** (bundle version for install/upgrade), and capability table.
