@@ -35,10 +35,10 @@
 
 ## 6. Verification
 
-- [ ] 6.1 Smoke test: with `.sleuths/config.yaml` pointing at the operator's inference endpoint (not localhost auto-start), create a sleuth and refresh; verify checkpoint advances on second refresh
-- [ ] 6.2 Verify subagent jsonl under a session with Task history is processed when present
-- [ ] 6.3 Verify refresh fails cleanly when the configured endpoint is unreachable (no checkpoint advance)
+- [x] 6.1 Smoke test: with `.sleuths/config.yaml` pointing at the operator's inference endpoint (not localhost auto-start), create a sleuth and refresh; verify checkpoint advances on second refresh
+- [x] 6.2 Verify subagent jsonl under a session with Task history is processed when present
+- [x] 6.3 Verify refresh fails cleanly when the configured endpoint is unreachable (no checkpoint advance)
 
 ## 7. Archive (apply finish)
 
-- [ ] 7.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` spec into living specs
+- [x] 7.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` spec into living specs
