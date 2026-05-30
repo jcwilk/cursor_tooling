@@ -43,8 +43,8 @@ mod tests {
     #[test]
     fn worktree_slug() {
         assert_eq!(
-            slug_from_path(Path::new("/home/user/.cursor/worktrees/home_ai/bufb")),
-            "home-user-cursor-worktrees-home-ai-bufb"
+            slug_from_path(Path::new("/home/user/.cursor/worktrees/my_app/abc12")),
+            "home-user-cursor-worktrees-my-app-abc12"
         );
     }
 }

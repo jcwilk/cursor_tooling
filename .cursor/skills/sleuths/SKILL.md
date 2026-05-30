@@ -25,17 +25,17 @@ Binary path (gitignored):
 .cursor/skills/sleuths/target/release/sleuth
 ```
 
-Configure summarization in `.sleuths/config.yaml` (**you create this file** — it is not auto-generated and is not committed):
+Configure summarization in `.sleuths/config.yaml` (**you must create this file before any refresh** — it is not auto-generated, not committed, and sleuth **never** installs or starts Ollama on this machine):
 
 ```yaml
 ollama:
-  base_url: http://<inference-host>:<port>   # Ollama-compatible HTTP API
-  model: <model-tag>                         # must exist on that endpoint
+  base_url: http://<inference-host>:<port>   # required — Ollama-compatible HTTP API you operate
+  model: <model-tag>                         # required — model tag on that endpoint
 transcripts:
   extra_transcript_slugs: []   # sibling clones, etc.
 ```
 
-Use the base URL and model tag for **your** inference setup (often a remote gateway, not a daemon on this workstation).
+Point `base_url` and `model` at **your** inference server (typically remote). Refresh only sends HTTP requests to that URL; it does not spawn a local daemon or pull models here.
 
 ## Establish a new sleuth
 

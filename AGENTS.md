@@ -65,6 +65,9 @@ Human-defined **sleuth** lenses summarize local Cursor agent transcripts into pr
 | **`.sleuths/<id>/summary.md`** | Agent-readable summary (may be stale) |
 | **`.sleuths/<id>/checkpoint.yaml`** | Incremental processing cursor |
 
+| **`.sleuths/config.yaml`** | **Required** inference endpoint (`ollama.base_url`, `ollama.model`) — human-created, gitignored |
+
+- Before refresh, ensure **`.sleuths/config.yaml`** exists and points at your Ollama-compatible inference server. Sleuth **does not** start or install Ollama locally — it only calls the configured URL.
 - Before guessing about prior decisions, bugs, or migrations discussed in past agent sessions, **read relevant `.sleuths/*/summary.md`** when they exist.
 - **Refresh is human-only in v1** — do not run sleuth refresh unless the human explicitly asks (skill **`/sleuths`**).
 - **`.sleuths/` is gitignored** and may contain secrets from transcripts — **never commit** it.

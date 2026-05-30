@@ -14,7 +14,7 @@
 - [x] 2.7 Implement map pass: Ollama HTTP call per chunk with sleuth query prompt (extract-only, preserve paths)
 - [x] 2.8 Implement reduce pass: merge map output into existing `summary.md` with session/subagent tags
 - [x] 2.9 Implement `refresh --sleuth <id>` and `refresh --all` subcommands; fail without advancing checkpoint on Ollama errors
-- [x] 2.10 Load `.sleuths/config.yaml` for Ollama URL/model and optional slug overrides; create sensible defaults on first run if missing
+- [x] 2.10 Load `.sleuths/config.yaml` for endpoint URL/model and optional slug overrides; require human-created config (no auto-generated defaults; sleuth never starts Ollama locally)
 
 ## 3. Local build tooling
 
@@ -35,10 +35,10 @@
 
 ## 6. Verification
 
-- [x] 6.1 Manual smoke test: create a sleuth on this repo, refresh against local transcripts, verify checkpoint increment on second refresh with new session tail
-- [x] 6.2 Verify subagent jsonl under a session with Task history is processed when present
-- [x] 6.3 Verify refresh fails cleanly when Ollama is unreachable (no checkpoint advance)
+- [ ] 6.1 Smoke test: with `.sleuths/config.yaml` pointing at the operator's inference endpoint (not localhost auto-start), create a sleuth and refresh; verify checkpoint advances on second refresh
+- [ ] 6.2 Verify subagent jsonl under a session with Task history is processed when present
+- [ ] 6.3 Verify refresh fails cleanly when the configured endpoint is unreachable (no checkpoint advance)
 
 ## 7. Archive (apply finish)
 
-- [x] 7.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` spec into living specs
+- [ ] 7.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` spec into living specs

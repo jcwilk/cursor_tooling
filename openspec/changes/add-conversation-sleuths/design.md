@@ -73,7 +73,7 @@ On refresh, skip segments at or below checkpoint; process tail of partially cons
 
 **Rationale:** File mtime alone fails for in-progress sessions; line count enables incremental tail processing.
 
-### 4. Map/reduce via local Ollama
+### 4. Map/reduce via configured Ollama-compatible endpoint
 
 - **Map:** For each new transcript chunk, extract plain text from JSONL (`text` blocks; condensed representation of tool use), send to configured Ollama model with the sleuth query prompt. Instruct: extract only, omit if not relevant, preserve paths verbatim.
 - **Reduce:** Merge map outputs into existing `summary.md` via a second Ollama call (or structured append for v0 fallback). Instruct: preserve prior bullets, dedupe lightly, tag entries with `[session <uuid>]` and `[subagent <uuid>]` when applicable.

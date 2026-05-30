@@ -42,7 +42,8 @@ pub fn load_config(project_root: &Path) -> Result<SleuthsConfig> {
     if !path.exists() {
         bail!(
             "missing {} — create it with ollama.base_url and ollama.model pointing at your \
-             Ollama-compatible inference endpoint (not checked into git)",
+             Ollama-compatible inference endpoint (remote or LAN). Sleuth does not start Ollama \
+             locally; refresh only HTTP-calls the URL you configure (file is gitignored)",
             path.display()
         );
     }
