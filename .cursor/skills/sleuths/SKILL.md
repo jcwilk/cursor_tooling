@@ -16,7 +16,7 @@ description: Establish and refresh human-defined lenses over local Cursor agent 
 Build the bundled Rust CLI once:
 
 ```bash
-.cursor/build-local-tools.sh
+scripts/build-local-tools.sh
 ```
 
 Binary path (gitignored):

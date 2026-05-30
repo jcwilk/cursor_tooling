@@ -72,7 +72,7 @@ Human-defined **sleuth** lenses summarize local Cursor agent transcripts into pr
 - **Refresh is human-only in v1** — do not run sleuth refresh unless the human explicitly asks (skill **`/sleuths`**).
 - **`.sleuths/` is gitignored** and may contain secrets from transcripts — **never commit** it.
 
-One-time local build: **`.cursor/build-local-tools.sh`**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
+One-time local build: **`scripts/build-local-tools.sh`**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
 
 ## Reference
 

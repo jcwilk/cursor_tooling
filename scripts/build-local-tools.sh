@@ -2,10 +2,11 @@
 # Build release binaries for all Rust crates shipped under .cursor/skills/.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SKILLS_DIR="$REPO_ROOT/.cursor/skills"
 BUILT=0
 
-for manifest in "$ROOT"/skills/*/Cargo.toml; do
+for manifest in "$SKILLS_DIR"/*/Cargo.toml; do
   [[ -f "$manifest" ]] || continue
   dir="$(dirname "$manifest")"
   echo "==> cargo build --release in $dir"
@@ -14,7 +15,7 @@ for manifest in "$ROOT"/skills/*/Cargo.toml; do
 done
 
 if [[ "$BUILT" -eq 0 ]]; then
-  echo "No Rust crates found under $ROOT/skills/"
+  echo "No Rust crates found under $SKILLS_DIR"
   exit 1
 fi
 

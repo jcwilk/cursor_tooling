@@ -35,7 +35,7 @@ disable-model-invocation: true
    .cursor/skills/persist/
    .cursor/skills/openspec-flow-install/
    .cursor/skills/sleuths/
-   .cursor/build-local-tools.sh
+   scripts/build-local-tools.sh
    .cursor/agents/osf-apply-start.md
    .cursor/agents/osf-apply-finish.md
    .cursor/agents/osf-apply-abort.md
@@ -43,7 +43,7 @@ disable-model-invocation: true
 
    Do **not** copy unrelated `.cursor/` entries from reference if the reference repo ever grows beyond OSF.
 
-   After sync, remind the human to run **`.cursor/build-local-tools.sh`** once if the bundle includes Rust tools (e.g. conversation sleuths). Ensure **`.gitignore`** includes **`.sleuths/`** and **`.cursor/skills/sleuths/target/`** (merge if the target already has a root `.gitignore`).
+   After sync, remind the human to run **`scripts/build-local-tools.sh`** once if the bundle includes Rust tools (e.g. conversation sleuths). Ensure **`.gitignore`** includes **`.sleuths/`** and **`.cursor/skills/sleuths/target/`** (merge if the target already has a root `.gitignore`). Remove stale **`.cursor/build-local-tools.sh`** on upgrade if present.
 
 ## Install (target has no OSF or no version file)
 
@@ -90,7 +90,8 @@ rsync -a --delete "$REF/.cursor/skills/osf-apply-changes/" "$TGT/.cursor/skills/
 rsync -a --delete "$REF/.cursor/skills/persist/" "$TGT/.cursor/skills/persist/"
 rsync -a --delete "$REF/.cursor/skills/openspec-flow-install/" "$TGT/.cursor/skills/openspec-flow-install/"
 rsync -a --delete "$REF/.cursor/skills/sleuths/" "$TGT/.cursor/skills/sleuths/"
-install -m755 "$REF/.cursor/build-local-tools.sh" "$TGT/.cursor/build-local-tools.sh"
+install -m755 "$REF/scripts/build-local-tools.sh" "$TGT/scripts/build-local-tools.sh"
+rm -f "$TGT/.cursor/build-local-tools.sh"
 install -m644 "$REF/.cursor/agents/osf-apply-"*.md "$TGT/.cursor/agents/"
 install -m644 "$REF/OPENSPEC_FLOW.md" "$TGT/OPENSPEC_FLOW.md"
 install -m644 "$REF/CHANGELOG.md" "$TGT/CHANGELOG.md"

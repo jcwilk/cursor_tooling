@@ -4,11 +4,17 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.1.1] — 2026-05-30
+
+### Changed
+
+- **`scripts/build-local-tools.sh`** — moved from `.cursor/build-local-tools.sh`; install skill and docs updated.
+
 ## [1.1.0] — 2026-05-30
 
 ### Added
 
-- **Conversation sleuths** — skill **`/sleuths`**, Rust **`sleuth`** CLI (`.cursor/skills/sleuths/`), **`.cursor/build-local-tools.sh`**, **`AGENTS.md`** guidance, gitignore for **`.sleuths/`** and build artifacts.
+- **Conversation sleuths** — skill **`/sleuths`**, Rust **`sleuth`** CLI (`.cursor/skills/sleuths/`), **`scripts/build-local-tools.sh`**, **`AGENTS.md`** guidance, gitignore for **`.sleuths/`** and build artifacts.
 
 ## [1.0.1] — 2026-05-28
 
