@@ -78,15 +78,17 @@ On refresh, skip segments at or below checkpoint; process tail of partially cons
 - **Map:** For each new transcript chunk, extract plain text from JSONL (`text` blocks; condensed representation of tool use), send to configured Ollama model with the sleuth query prompt. Instruct: extract only, omit if not relevant, preserve paths verbatim.
 - **Reduce:** Merge map outputs into existing `summary.md` via a second Ollama call (or structured append for v0 fallback). Instruct: preserve prior bullets, dedupe lightly, tag entries with `[session <uuid>]` and `[subagent <uuid>]` when applicable.
 
-Config in `.sleuths/config.yaml`:
+Config in `.sleuths/config.yaml` (human-created, gitignored):
 
 ```yaml
 ollama:
-  base_url: http://127.0.0.1:11434
-  model: llama3.2
+  base_url: http://<inference-host>:<port>
+  model: <model-tag>
 transcripts:
   extra_transcript_slugs: []
 ```
+
+Consumers point `base_url` and `model` at whatever Ollama-compatible endpoint they operate (often remote, not on the workstation running sleuth).
 
 ### 5. Rust runner placement and build
 
@@ -131,7 +133,7 @@ Short section:
 | Moved/renamed project directory orphans old slug history | Document limitation; `extra_transcript_slugs` for manual linking |
 | Sibling clones invisible to git worktree list | Manual slug overrides |
 | Large projects → long refresh | Incremental checkpoints; chunk map passes; human-triggered only in v1 |
-| Ollama unavailable | Runner fails with clear error; no partial checkpoint advance on failed reduce |
+| Summarization endpoint unavailable | Runner fails with clear error; no partial checkpoint advance on failed reduce |
 
 ## Migration Plan
 
