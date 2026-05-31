@@ -22,12 +22,13 @@
 
 ## 5. Explain (`osf-explain`)
 
-- [ ] 5.1 **Reorder change-scope template**: move **Quick read** to the end; place new **`## Apply scope at shipping`** immediately before Quick read (after drill-down: Intent, Changelog, Capability impact, Delta details, Spec-quality flags, Design highlights, Tasks, Living-spec impact).
-- [ ] 5.2 Implement **Apply scope at shipping** (short bullets): **In scope for apply**, **Explicitly deferred (by intent)**, **Flags**; heuristics for ops-like tasks; single-line when none; never label skipped required work “optional.”
-- [ ] 5.3 Update **fast-pass reading order** in skill front matter and description: metadata → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide** (not Intent/Changelog first).
-- [ ] 5.4 Update **What the human needs to decide**: Approve text states accepting apply = in-scope tasks run or abort; Refine cites Apply scope flags or spec-quality flags.
-- [ ] 5.5 Update **single-artifact** table rows and behavior rules for new section order; note post-apply/finish relay still distinguishes incomplete vs deferred (by intent).
-- [ ] 5.6 Mention end-of-debrief skim path in `OPENSPEC_FLOW.md` capability table blurb for `/osf-explain` (one line).
+- [ ] 5.1 **Reorder change-scope template** footer: drill-down first; then **`## Ambiguities`** → **`## Apply scope at shipping`** → **`## Quick read`** → **`## What the human needs to decide`**.
+- [ ] 5.2 Implement **`## Ambiguities`**: bullets `<Significance> — <issue + path hint>`; labels **Blocking before apply** | **Should fix before apply** | **Discuss / may approve**; aggregate from spec-quality flags, tasks, ops scope, proposal/design; single line `None` when clean; section always present.
+- [ ] 5.3 Implement **Apply scope at shipping** (no ambiguity list here): **In scope for apply**, **Explicitly deferred (by intent)**; heuristics for ops-like tasks; never label skipped required work “optional.”
+- [ ] 5.4 Update **fast-pass reading order** (front matter + description): metadata → **Ambiguities** → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**.
+- [ ] 5.5 Update **What the human needs to decide**: Approve = resolve blocking ambiguities + accept apply scope; **Refine** one line → see **Ambiguities** (not inline flag dump).
+- [ ] 5.6 Update **single-artifact** table rows and behavior rules for footer order; note post-apply/finish relay still distinguishes incomplete vs deferred (by intent).
+- [ ] 5.7 Mention end-of-debrief skim path (Ambiguities → Apply scope → Quick read) in `OPENSPEC_FLOW.md` capability table blurb for `/osf-explain` (one line).
 
 ## 5b. Propose handoff (`osf-propose`)
 

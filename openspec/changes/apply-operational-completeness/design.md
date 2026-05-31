@@ -69,7 +69,7 @@ Add a short subsection: **Apply-complete vs merge-complete**. Merge-complete = a
 
 ### D6 — Explain debrief rules
 
-`osf-explain` adds **Apply scope at shipping** (end of template): short bullets for **In scope for apply**, **Explicitly deferred (by intent)**, and **Flags** (ambiguous env, pre-checked ops without attestation, misleading “optional” section titles). Never call skipped required work “optional.”
+`osf-explain` adds **Apply scope at shipping** (footer): **In scope for apply**, **Explicitly deferred (by intent)** only—no ambiguity list here. Never call skipped required work “optional.”
 
 ### D7 — Explain template order (skim at bottom)
 
@@ -81,22 +81,30 @@ Add a short subsection: **Apply-complete vs merge-complete**. Merge-complete = a
 2. **Intent** → **Changelog summary** (drill-down for spec reviewers)  
 3. **Capability impact** → **Delta details** → **Spec-quality flags** → **Design highlights** → **Tasks** (groups/touchpoints) → **Living-spec impact at archive**  
 4. **End block (skim path, in order):**  
-   - **`## Apply scope at shipping`** — what apply will attempt vs deferred; ambiguity flags  
+   - **`## Ambiguities`** — short bullets with significance, or a single line `None` when nothing material is uncertain  
+   - **`## Apply scope at shipping`** — what apply will attempt vs deferred (operational scope only)  
    - **`## Quick read`** — 3–7 narrative bullets (unchanged role, new position)  
-   - **`## What the human needs to decide`** — Approve / Refine / Abort; Approve text MUST reference that apply runs in-scope tasks or aborts
+   - **`## What the human needs to decide`** — Approve / Refine / Abort; Refine points to **Ambiguities** (and spec-quality flags in drill-down), not a long inline flag list
 
-**Fast-pass reading order** (skill front matter): metadata → jump to **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**. Intent/changelog remain for deep review only.
+**Fast-pass reading order** (skill front matter): metadata → **Ambiguities** → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**. Intent/changelog remain for deep review only.
+
+**Ambiguities** content rules (keep short):
+
+- Pull from: spec-quality flags (🔴/🟡), unclear or conflicting `tasks.md` wording, unnamed environments, pre-checked ops without attestation, misleading section titles, proposal/design vs tasks mismatch, missing non-goals when scope is fuzzy.
+- **One bullet per issue**, format: `<Significance> — <what is unclear and where>` (e.g. `Blocking before apply — task 3.2 names "staging" but no URL or host`).
+- **Significance labels** (use exactly one per bullet): **Blocking before apply** | **Should fix before apply** | **Discuss / may approve** (map 🔴 blocking flags to first; 🟡 discuss flags to last unless ops-blocking).
+- When nothing material: single line `None` (do not omit the section; do not use empty bullet lists).
+- Do **not** duplicate the full **Spec-quality flags** drill-down—summarize only what matters for approve/apply; link paths inline when helpful.
 
 **Apply scope at shipping** content rules (keep short):
 
 - **In scope for apply:** unchecked required tasks that imply build, release, deploy, or live verification (one line each; no requirement names unless unavoidable).
 - **Explicitly deferred:** items under `## Explicitly deferred` (or equivalent); note owner/follow-up if stated in tasks.
-- **Flags:** only when raised—e.g. ops task checked without attestation, environment unnamed, section title implies optional but bullets read mandatory.
 - If no operational tasks: one line `No build, release, or live-environment tasks in scope for apply.`
 
 ### D8 — Pre-apply approval contract (via explain)
 
-Approval before apply means accepting the **Apply scope at shipping** block as the execution contract—not only delta requirements. `osf-propose` handoff: debrief MUST include the end block; prose in **What the human needs to decide** says approving apply accepts in-scope ops or expects abort.
+Approval before apply means resolving **Ambiguities** (or accepting **Discuss** items consciously) and accepting **Apply scope at shipping** as the execution contract—not only delta requirements. `osf-propose` handoff: debrief MUST include the footer block; **Refine** bullet is one line pointing to **Ambiguities** and drill-down **Spec-quality flags**.
 
 ### D9 — Version bump
 

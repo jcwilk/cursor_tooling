@@ -101,8 +101,25 @@ Human-facing whole-change debriefs MUST place concise skim-oriented summaries af
 #### Scenario: Whole-change debrief layout
 - **WHEN** a whole-change debrief is rendered for human review
 - **THEN** detailed intent, changelog, capability, delta, flag, design, and task drill-down sections MUST appear before the closing skim sections
-- **AND** the closing skim sections MUST include operational apply scope and a narrative quick read in that order, followed by approve-or-refine guidance
+- **AND** the closing skim sections MUST include ambiguities with significance, operational apply scope, and a narrative quick read in that order, followed by approve-or-refine guidance
+
+#### Scenario: Ambiguities when none
+- **WHEN** a whole-change debrief has no material ambiguity for approve or apply
+- **THEN** the ambiguities section MUST state that none exist rather than omitting the section
 
 #### Scenario: Fast review path
 - **WHEN** a reviewer uses the documented fast-pass reading order for a whole-change debrief
-- **THEN** they MAY read only the change metadata and the closing operational apply scope and quick read sections without reading intermediate spec drill-down
+- **THEN** they MAY read only the change metadata and the closing ambiguities, operational apply scope, and quick read sections without reading intermediate spec drill-down
+
+### Requirement: Change debrief ambiguities carry significance
+
+Human-facing whole-change debriefs MUST summarize material ambiguities in a dedicated closing section with concise bullets that each state how significant the ambiguity is for approval or apply.
+
+#### Scenario: Material ambiguity exists
+- **WHEN** review detects unclear task wording, conflicting scope, spec-quality concerns, or operational preconditions that are not explicit
+- **THEN** the debrief MUST list each issue as a short bullet with a significance indicator
+- **AND** MUST NOT bury those items only inside approve-or-refine prose
+
+#### Scenario: No material ambiguity
+- **WHEN** review finds no ambiguity that affects approval or apply scope
+- **THEN** the ambiguities section MUST explicitly state that none exist
