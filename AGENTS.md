@@ -12,6 +12,8 @@ Work generally moves in this order:
 2. **Apply** — **`/osf-apply-changes`** spawns **`osf-apply-start`** workers that implement approved **`tasks.md`** (including edits outside **`openspec/`** when tasks require them). Living specs stay read-only here; course corrections go through **`osf-apply-abort`** and revised **`/osf-propose`**, not silent edits to locked intent.
 3. **Reconcile** — **`osf-apply-finish`** runs archive so deltas merge into **`openspec/specs/`**, then merges the execution branch into the **default branch** and pushes when that is the agreed completion. After archive, **`openspec/specs/`** is the durable source of behavioral truth for merged work.
 
+**Apply-complete vs merge-complete:** merge and archive success is **merge-complete**. **Apply-complete** additionally requires every non-deferred **`tasks.md`** row—especially build/release and live-environment acceptance—to have class-appropriate evidence (or an explicit same-message override). If ops work is missing, workers **abort** rather than check boxes and finish; finish fails closed when verification notes lack ops proof. See **`OPENSPEC_FLOW.md`** → “Apply-complete vs merge-complete.”
+
 Higher-level narrative, vocabulary, and slash-command overview: **`OPENSPEC_FLOW.md`**.
 
 ## Specs, changes, and review

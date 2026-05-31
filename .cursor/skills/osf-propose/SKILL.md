@@ -178,6 +178,19 @@ If the request feels under-specified, offer to drop into **`/osf-explore`** firs
 3. Apply the same Spec Quality checklist when editing any `spec.md`.
 4. Validate as in A.4.
 
+## `tasks.md` discipline
+
+Operational work (build artifacts, release publication, deploy, live acceptance) defaults to **`- [ ]`** even when implementation already exists on a branch. **Pre-checking** `- [x]` is allowed only when the human **in the same turn** attests a **named environment** is already verified for this change (what ran, against which target).
+
+**Structure:**
+
+- **`## Required for this change`** (or numbered groups **without** “optional” in the title) — in-scope for apply; every row must complete with evidence or the run **aborts**.
+- **`## Explicitly deferred`** — out of scope for this apply run; explain and finish debriefs use **deferred by intent**, not “optional follow-up.”
+- **Do not** use section titles like “optional follow-up” for in-scope production work.
+- Migration narrative stays in **`design.md`**; anything apply must execute appears as checkable tasks.
+
+**Self-check before persist:** if any build, deploy, or environment-acceptance row is `- [x]` without human attestation in the **same turn**, flag it in chat and revert to `- [ ]` before committing artifacts.
+
 ## Repository conventions
 
 - **Living specs:** `openspec/specs/`. Changes stay in `openspec/changes/` until archived by **`/osf-apply-finish`**.
@@ -205,6 +218,8 @@ After OpenSpec artifacts for this request are complete and validated:
 ## Debrief — hand off to `/osf-explain`
 
 After artifacts are validated and persisted, render the human-facing closing summary by reading and following **`.cursor/skills/osf-explain/SKILL.md`** with the just-created or refined change as the scope (use the **change-scope template**, not a single-artifact template). **Do not freelance a debrief** — every `/osf-propose` close-out goes through `/osf-explain` so the reviewer sees the same shape every time.
+
+The explain footer (**Ambiguities**, **Apply scope at shipping**, **Quick read**) carries skim and approval context—**do not** instruct agents to echo that footer in **What the human needs to decide**; Decide is action lines only.
 
 If the user explicitly opted out of persist, still run `/osf-explain` against the in-place change folder before ending the turn.
 

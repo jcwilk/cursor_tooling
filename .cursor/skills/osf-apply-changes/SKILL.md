@@ -27,10 +27,29 @@ This skill is **just orchestration**. Per-change implementation (branch setup, w
 
 Until the **`osf-apply-start`** Task returns, that run is the **sole** implementation lane for that change name. **No parallel implementation** of the same **`openspec/changes/<name>/`** in the parent thread.
 
+## Task prompt contract
+
+When you construct the Task prompt for **`osf-apply-start`**, treat the approved **`tasks.md`** as the floor, not a suggestion:
+
+- **MAY add** constraints: execution branch or worktree path, validation commands, safety boundaries from **`AGENTS.md`**, environment allowlists, “no live deploy” only when the human said so in the **same message**.
+- **MUST NOT subtract, downgrade, or waive** any `- [ ]` row in approved **`tasks.md`** unless the initiating human **explicitly opts out** of that task or task class in the **same directive** that triggered this apply run.
+- **Verify-existing-work phrasing** (“mostly verify,” “commit what’s on the branch,” “just merge,” “catch up and finish”) means: complete **every non-deferred** task in **`tasks.md`**, including **build/release artifact** and **environment acceptance** classes—not repository tests alone.
+
+If the human narrows scope, they must say which task or class is out of scope **in that message**; otherwise the worker executes the full approved list or **aborts** with a blocker.
+
+### Worked examples — forbidden vs allowed
+
+| Forbidden (softens approved work) | Allowed (adds constraints only) |
+|---|---|
+| “Local smoke is enough; skip staging verification.” | “Run task 4.2 against staging URL `https://staging.example/health`; credentials in `.env`.” |
+| “You may skip environment verification if blocked.” | “If staging is unreachable, **abort**—do not check environment tasks or finish.” |
+| “Just validate and merge; ops tasks are optional follow-up.” | “Complete all sections 1–5 in **`tasks.md`**; no live deploy (human waived section 6 in this message).” |
+| “Implementation is done—checkbox the rest and call finish.” | “Verify sections 1–3 on branch `apply/foo`; section 4 requires image tag from CI job id in verification notes.” |
+
 ## Single change
 
 1. Confirm the change name and that intent is approved under `openspec/changes/<name>/`.
-2. Spawn **one** Task with `subagent_type: osf-apply-start`. The prompt must be **self-contained**: repository root, change name, branch/worktree naming the human requested (or sensible defaults like `apply/<name>`), constraints from **`AGENTS.md`** (project safety boundaries, living-spec discipline), any validation expectations.
+2. Spawn **one** Task with `subagent_type: osf-apply-start`. The prompt must be **self-contained**: repository root, change name, branch/worktree naming the human requested (or sensible defaults like `apply/<name>`), constraints from **`AGENTS.md`** (project safety boundaries, living-spec discipline), any validation expectations, and the **Task prompt contract** above (do not subtract **`tasks.md`** work).
 3. **Wait for that Task to finish**; then relay the worker’s debrief to the human (**see “Wait for the subagent”** above). **Do not** implement the same change in the parent while the Task runs.
 
 ## Multiple changes in parallel

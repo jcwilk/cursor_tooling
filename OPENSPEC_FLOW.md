@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.1.1"
+OPENSPEC_FLOW_VERSION: "1.2.0"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -86,7 +86,7 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 |---------------|------|------|
 | **`/osf-explore`** | Skill | Read-only thinking partner; no implementation. |
 | **`/osf-propose`** | Skill | Create or refine a change under `openspec/changes/<name>/`, validate, persist. |
-| **`/osf-explain`** | Skill | Structured human review summary of a change. |
+| **`/osf-explain`** | Skill | Structured human review summary of a change; end-of-debrief skim: **Ambiguities** → **Apply scope at shipping** → **Quick read**. |
 | **`/osf-apply-changes`** | Skill | Spawns **`osf-apply-start`** (Task-only) workers. |
 | **`/osf-apply-start`** | Subagent | Implements one approved change on an isolated branch. |
 | **`/osf-apply-finish`** | Subagent | Verify, archive, merge default branch, push. |
@@ -101,6 +101,17 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 2. **Shape:** **`/osf-propose`** captures `proposal.md`, `design.md`, deltas, `tasks.md`.
 3. **Apply:** **`/osf-apply-changes`** → **`osf-apply-start`** on isolated branches/worktrees.
 4. **Finish:** **`osf-apply-finish`** archives, reconciles **`openspec/specs/`**, merges, pushes — or **`osf-apply-abort`** when intent must be revised.
+
+**Success criterion:** a change is **apply-complete** only when every non-deferred **`tasks.md`** row has class-appropriate evidence (or an authorized override) and finish verification passes—not merely when the default branch has merged.
+
+## Apply-complete vs merge-complete
+
+| Term | Meaning |
+|------|---------|
+| **Merge-complete** | Archive ran, living specs reconciled, execution branch merged into the default branch (and pushed when agreed). |
+| **Apply-complete** | Merge-complete **and** every non-deferred task—including **build/release artifact** and **environment acceptance** work—has evidence in the apply/finish handoff or an explicit same-message human override; otherwise the apply unit should have **aborted** instead of finishing. |
+
+Repository hygiene (checked boxes, validate, merge) can succeed while operational delivery is still missing. OSF treats that gap as a failure mode: orchestrators must not soften Task prompts, workers must not substitute weaker checks, and finish must not trust checkboxes alone for ops task classes.
 
 ## Blocked flow
 

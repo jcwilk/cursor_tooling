@@ -1,6 +1,6 @@
 ---
 name: osf-explain
-description: Renders a structured, consistent human-review summary of an OpenSpec change under `openspec/changes/<name>/`. Fast pass: **Intent** → structured **Changelog summary** (added/changed/removed/moved/explicitly unchanged) → narrative **Quick read**; then capability table, requirement-level deltas, flags, and apply hints. Use for `/osf-explain`, attached skill, explain/summarize/debrief/review requests, or when `/osf-propose` closes out via this template.
+description: Renders a structured, consistent human-review summary of an OpenSpec change under `openspec/changes/<name>/`. Fast pass (footer skim): change metadata → **Ambiguities** → **Apply scope at shipping** → **Quick read**; optionally **What the human needs to decide**. Intent/changelog/deltas are drill-down. Use for `/osf-explain`, attached skill, explain/summarize/debrief/review requests, or when `/osf-propose` closes out via this template.
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Produces a fixed-template explanation of an OpenSpec change so a human can review intent and spec operations quickly and reliably. **The point of this skill is consistency**: same shape, same headings, same flags, every time. Refine the template *here* when reviewer needs change; do not freelance the format inside other skills.
 
-**Fast-pass reading order** (whole change): after the **`## Change:`** metadata block, render **`## Intent`** → **`## Changelog summary`** → **`## Quick read`**. Those three are the “front page”; everything after is drill-down (tables, requirement names, flags, apply hints).
+**Fast-pass reading order** (whole change): after the **`## Change:`** metadata block, reviewers MAY skip to the **footer skim path** in order: **`## Ambiguities`** → **`## Apply scope at shipping`** → **`## Quick read`**, then optionally **`## What the human needs to decide`**. **`## Intent`** and **`## Changelog summary`** (and everything through **Living-spec impact at archive**) are **drill-down** for spec reviewers—not the default skim path.
 
 This skill is **read-only**: it never edits the change folder, never persists, never runs `apply`/`archive`. If review surfaces a fix, route the user back to **`/osf-propose`**.
 
@@ -36,9 +36,11 @@ so the **Validation** and **Status** lines come from the CLI, not from a guess. 
 
 ## Output template — do not improvise
 
-Render the template below verbatim (Markdown headings, table headers, bullet labels). Fill bracketed slots from the artifacts. **Quick read** = **3–7** short narrative bullets (or, rarely, **2** very tight paragraphs if the story resists bullets); plain language only; no changelog or Intent duplication; capability names OK, requirement names sparse.
+Render the template below verbatim (Markdown headings, table headers, bullet labels). Fill bracketed slots from the artifacts.
 
-Omit a section only when the artifact is genuinely absent (e.g. `design.md` was skipped in Lite mode); never collapse two sections into one. Keep bullets short — reviewer fatigue is the failure mode, not under-explaining.
+**Footer skim block** (always present at the end, in this order): **`## Ambiguities`** → **`## Apply scope at shipping`** → **`## Quick read`** → **`## What the human needs to decide`**. **Quick read** = **3–7** short narrative bullets; plain language; no duplication of Ambiguities or Apply scope. **Ambiguities** uses a single line `None` when clean—never omit the section.
+
+Omit a drill-down section only when the artifact is genuinely absent (e.g. `design.md` was skipped in Lite mode); never collapse two sections into one. Keep bullets short — reviewer fatigue is the failure mode, not under-explaining.
 
 ### Change-scope template
 
@@ -80,13 +82,6 @@ Use the subheadings below **in this order**. **Omit a subheading entirely** when
 ### Explicitly unchanged
 
 - <Only when `proposal.md` or `design.md` states non-goals, explicit stability, or “no runtime/API change”; one tight bullet each>
-
-## Quick read
-
-- <plain-language bullet: what is different after archive — capabilities, boundaries, “artifacts in the world”; avoid requirement names unless one is unavoidable>
-- <plain-language bullet: why it matters — operators, humans, agents; clarity, safety, scope, risk>
-- <optional bullet: explicit non-goals / out-of-scope from proposal or design>
-- <add bullets until **3–7** substantive lines total; omit empty bullets>
 
 ## Capability impact
 
@@ -140,11 +135,38 @@ After **`/osf-apply-finish`**:
 - `openspec/specs/<capability>/spec.md` — <CREATED | UPDATED: requirement names added/modified/removed>
 - (one bullet per affected living spec)
 
+## Ambiguities
+
+<One bullet per material issue, format: `<Significance> — <what is unclear and where>` with path hints. Use exactly one significance label per bullet: **Blocking before apply** | **Should fix before apply** | **Discuss / may approve**. Aggregate from spec-quality flags (🔴/🟡), unclear `tasks.md` wording, unnamed environments, pre-checked ops without attestation, misleading section titles, proposal/design vs tasks mismatch. Do not duplicate full **Spec-quality flags** drill-down—summarize only what affects approve/apply. When nothing material: single line `None` (section always present).>
+
+## Apply scope at shipping
+
+**In scope for apply:**
+
+- <unchecked required tasks that imply build, release, deploy, or live verification—one line each; no requirement names unless unavoidable>
+- <If none: `No build, release, or live-environment tasks in scope for apply.`>
+
+**Explicitly deferred (by intent):**
+
+- <items under `## Explicitly deferred` or equivalent; owner/follow-up if stated>
+- <If none: `None explicitly deferred in tasks.`>
+
+<Never label skipped required work “optional.” Heuristic: ops-like tasks live under required groupings, not “optional follow-up” headings.>
+
+## Quick read
+
+- <plain-language bullet: what is different after archive — capabilities, boundaries, “artifacts in the world”; avoid requirement names unless one is unavoidable>
+- <plain-language bullet: why it matters — operators, humans, agents; clarity, safety, scope, risk>
+- <optional bullet: explicit non-goals / out-of-scope from proposal or design>
+- <add bullets until **3–7** substantive lines total; omit empty bullets>
+
 ## What the human needs to decide
 
-- **Approve** → run `/osf-apply-changes` to spawn an apply worker.
-- **Refine** → cite a spec-quality flag or section above and re-enter via `/osf-propose`.
+- **Approve** → run `/osf-apply-changes` to spawn an apply worker (in-scope tasks execute or the run aborts—see **Apply scope at shipping** above).
+- **Refine** → re-enter via `/osf-propose`.
 - **Abort** → say so; the change folder stays for revision and no implementation runs.
+
+<Do not cross-reference footer sections, dump spec-quality flags inline, or restate **Ambiguities** / **Apply scope at shipping** here—three action lines only.>
 ```
 
 ### Single-artifact templates
@@ -153,10 +175,12 @@ Render only the relevant subset of the change-scope template. Keep the section h
 
 | Subject | Sections to render |
 |---|---|
-| `proposal` | **Intent**, **Changelog summary** (intent-level only — from proposal’s capability / “What Changes”; skip requirement-level unless delta specs are in scope), **Quick read** (from proposal / design only; do not invent requirement detail), **Capability impact** (from proposal if deltas not in scope), **What the human needs to decide** |
-| `design` | **Design highlights** |
-| `specs` (all) or `specs/<capability>` | **Changelog summary** (capabilities in scope), **Quick read** (qualitative; scoped to those capabilities), **Capability impact**, **Delta details** (for the requested capability or all of them), **Spec-quality flags**, **Living-spec impact at archive** |
-| `tasks` | **Tasks**, **What the human needs to decide** |
+| `proposal` | **Intent**, **Changelog summary** (intent-level only), **Capability impact** (from proposal if deltas not in scope), footer: **Ambiguities**, **Apply scope at shipping**, **Quick read**, **What the human needs to decide** |
+| `design` | **Design highlights**, footer skim block when useful for review |
+| `specs` (all) or `specs/<capability>` | **Changelog summary**, **Capability impact**, **Delta details**, **Spec-quality flags**, **Living-spec impact at archive**, footer: **Ambiguities**, **Apply scope at shipping**, **Quick read** (optional **Decide**) |
+| `tasks` | **Tasks**, footer: **Ambiguities**, **Apply scope at shipping**, **What the human needs to decide** |
+
+Post-apply/finish relay (parent or worker debrief) still distinguishes **incomplete** required work from **explicitly deferred (by intent)**—do not call skipped required ops “optional.”
 
 Always lead with the `## Change: <change-name>` block and the path/validation/status/branch lines so the artifact stays anchored to its change.
 
@@ -183,7 +207,8 @@ Severity legend (use exactly these):
 - **Do not paste full requirement text** unless the user explicitly asks for it. Names plus one-liners only.
 - **Cite paths inline** so the reviewer can jump straight to the artifact (`openspec/changes/<name>/specs/<capability>/spec.md`).
 - **CLI is the source of truth for status and validation.** Use `openspec status` / `openspec validate`; never invent a result.
-- **Changelog summary** + **Quick read** are the fast front page after **Intent**: changelog = structured Added/Changed/Removed/Moved/Unchanged; **Quick read** = short qualitative story **without** repeating either changelog or intent verbatim. Both must stay consistent with **Delta details** below.
+- **Footer skim path** is **Ambiguities** → **Apply scope at shipping** → **Quick read**; **Decide** is optional and minimal. Drill-down (**Intent** through **Living-spec impact**) must stay consistent with footer content but is not repeated in **Decide**.
+- **Changelog summary** = structured Added/Changed/Removed/Moved/Unchanged; **Quick read** = short qualitative story **without** repeating changelog, intent, ambiguities, or apply scope verbatim.
 - **One template, every time.** If the canonical template needs to evolve, edit *this* file rather than diverging in callers.
 
 ## Reference

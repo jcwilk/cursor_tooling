@@ -4,6 +4,19 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.2.0] — 2026-05-31
+
+### Changed
+
+- **Operational completeness** — apply orchestration must not soften approved **`tasks.md`** scope; **`osf-apply-start`** classifies tasks (implementation, build/release, environment acceptance, tooling-only) with evidence rules and aborts when required environment work cannot run; **`osf-apply-finish`** gates archive on ops evidence, not checkboxes alone.
+- **`/osf-propose`** — **`tasks.md`** discipline: ops tasks default unchecked; required vs **Explicitly deferred** structure; pre-check only with same-turn human attestation.
+- **`/osf-explain`** — footer skim order **Ambiguities** → **Apply scope at shipping** → **Quick read** → minimal **Decide**; fast-pass reading order updated.
+- **`OPENSPEC_FLOW.md`** / **`AGENTS.md`** — **apply-complete** vs **merge-complete** vocabulary.
+
+### Notes for consumers
+
+Upgrading from 1.1.x changes **behavioral expectations** for apply: verify-existing-work and narrow Task prompts no longer excuse skipping release or live acceptance tasks. Review in-flight changes for pre-checked ops rows and “optional follow-up” section titles.
+
 ## [1.1.1] — 2026-05-30
 
 ### Changed

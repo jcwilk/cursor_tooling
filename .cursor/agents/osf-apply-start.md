@@ -48,7 +48,7 @@ Returns:
 
 Handle states:
 - **`blocked`** (missing artifacts) → **abort**: spawn **`osf-apply-abort`** with the missing-artifact context. Approved intent is incomplete; do not paper over it.
-- **`all_done`** → skip Step 4 and go to **Step 5 (Finish)**.
+- **`all_done`** from the CLI → **only** skip Step 4 when **`tasks.md`** has no required `- [ ]` rows left (including operational tasks). If the CLI reports complete progress but human-visible required ops tasks are still unchecked, **continue Step 4**—do not delegate finish solely on CLI progress.
 - Otherwise → continue.
 
 ## Step 3 — Read context
@@ -57,21 +57,35 @@ Read every file path under `contextFiles`. For `spec-driven`: typically `proposa
 
 Also read **`AGENTS.md`** (if not already in context) for living-spec discipline and host safety rules. Read **`openspec/specs/<domain>/spec.md`** for any capability the change touches.
 
+## Task classes and evidence
+
+Classify each **`tasks.md`** row before marking it complete. Weaker checks **do not** substitute for a stricter class unless the task text explicitly permits it (e.g. “local-only smoke OK”).
+
+| Class | Examples | Complete when | Evidence for finish handoff |
+|-------|----------|---------------|------------------------------|
+| **implementation** | code, config, docs in repo | change landed on execution branch; task-directed validation passes | paths/commits; validation command + exit status |
+| **build/release artifact** | images, packages, tagged releases | artifact exists at stated location/version | build command + output; artifact id, tag, or digest |
+| **environment acceptance** | smoke on staging/prod, E2E against live URL | check ran against **named** environment per task | command, URL, outcome—not “local only” unless task allows |
+| **tooling-only** | `openspec validate`, lint | command succeeded on execution branch | command + exit status |
+
+**Environment acceptance blocked** (no credentials, no target, policy): **abort** via **`osf-apply-abort`**—do **not** check the box, do **not** delegate finish.
+
 ## Step 4 — Implement tasks (loop)
 
 For each pending task:
 
-1. State which task you are on (e.g. `Working on 3/7: <task summary>`).
+1. State which task you are on (e.g. `Working on 3/7: <task summary>`) and its **class**.
 2. Make the code / artifact / runbook changes the task requires—**minimal and scoped**.
-3. Mark the task complete in the tasks file: `- [ ]` → `- [x]` **immediately** after completing it.
-4. Continue to the next task.
+3. Capture **class-appropriate evidence** (commands, artifact ids, URLs) for finish handoff before checking the box.
+4. Mark the task complete in the tasks file: `- [ ]` → `- [x]` **immediately** after completing it with evidence.
+5. Continue to the next task.
 
 **Pause and reassess if:**
 - Task is unclear → ask for clarification (return to parent if running headless).
 - Implementation reveals a design issue → do **not** edit the change folder to "fix" it; spawn **`osf-apply-abort`** so the human revises via **`/osf-propose`**.
 - Error or blocker that blocks safe progress → **`osf-apply-abort`**.
 
-Validate per **`tasks.md`** when it directs you to (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`). Do operational smoke tests where the tasks ask and where it's safe.
+Validate per **`tasks.md`** when it directs you to (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`). Run checks required by each task’s **class**—not generic “smoke where safe” as a substitute for **environment acceptance**.
 
 ## Step 5 — Finish (normal completion)
 
@@ -81,7 +95,7 @@ Spawn a Task with **`subagent_type: osf-apply-finish`** and a **self-contained**
 - change name,
 - execution branch (and worktree path if applicable),
 - repository root,
-- verification notes (validations run, smoke tests, anything ambiguous),
+- **verification notes** listing **per-class evidence** for every ops task completed this run (commands, artifact ids, URLs, outcomes) plus tooling-only validations; call out any task class with **missing** evidence explicitly,
 - explicit merge/push instruction—default is "merge into `main` and push" per **`osf-apply-finish`**; pass **`merge-to-main: skip`** or **`do not push`** only if the human said so.
 
 Return the finish subagent's debrief verbatim to the parent (archive path, merge SHA, push state, warnings).

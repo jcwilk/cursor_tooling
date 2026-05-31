@@ -17,7 +17,8 @@ You are the **finish** worker for **one** OpenSpec change. You own the **termina
 
 1. Confirm `tasks.md` for the change reflects completed work (`- [x]` as appropriate) and that implementation on the branch matches the approved artifacts (`proposal.md`, `design.md`, delta `specs/`, `tasks.md`).
 2. Run any task-required validation (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`).
-3. If verification fails, **do not** archive. Report the gaps to the parent and stop.
+3. **Operational evidence gate** (fail closed): for each **build/release artifact** and **environment acceptance** task marked `- [x]`, require implementer **verification notes** to cite evidence (command, artifact id, URL, timestamp, outcome)—or an **explicit human override** in this finish Task prompt naming the waived task/class. Checkbox alone is **not** sufficient. If implementation is done but ops tasks lack proof, **do not** archive; report the gap and stop.
+4. If verification fails, **do not** archive. Report the gaps to the parent and stop.
 
 ## Step 2 — Archive on this branch
 
@@ -100,6 +101,7 @@ Return a structured summary:
 
 - **Archive** — `succeeded` / `failed`; final archive path under `openspec/changes/archive/`; whether `--no-validate` was used.
 - **Living specs** — paths reconciled; result of `validate --specs`.
+- **Operational evidence** — per **build/release** and **environment acceptance** task: `succeeded` (cite evidence from verification notes), `missing` (checked but no proof), or `override` (which task/class and prompt authorization). Separate from checkbox state—report gaps even when all boxes are `[x]`.
 - **Merge** — default branch name, execution branch name, resulting `HEAD` SHA on the default branch (or `skipped: <reason>` / `conflicts: <paths>`).
 - **Push** — branches pushed and to which remote (or `skipped: <reason>`).
 - **Warnings** — any incomplete artifacts/tasks the prompt authorized you to override; any post-merge `git status` items.
