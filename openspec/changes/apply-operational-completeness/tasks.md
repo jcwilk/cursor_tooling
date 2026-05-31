@@ -26,13 +26,13 @@
 - [ ] 5.2 Implement **`## Ambiguities`**: bullets `<Significance> — <issue + path hint>`; labels **Blocking before apply** | **Should fix before apply** | **Discuss / may approve**; aggregate from spec-quality flags, tasks, ops scope, proposal/design; single line `None` when clean; section always present.
 - [ ] 5.3 Implement **Apply scope at shipping** (no ambiguity list here): **In scope for apply**, **Explicitly deferred (by intent)**; heuristics for ops-like tasks; never label skipped required work “optional.”
 - [ ] 5.4 Update **fast-pass reading order** (front matter + description): metadata → **Ambiguities** → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**.
-- [ ] 5.5 Update **What the human needs to decide**: Approve = resolve blocking ambiguities + accept apply scope; **Refine** one line → see **Ambiguities** (not inline flag dump).
+- [ ] 5.5 **What the human needs to decide**: three standard action lines only; add explicit rule—no cross-references to footer sections, no inline flag dumps, no restating apply scope or ambiguities.
 - [ ] 5.6 Update **single-artifact** table rows and behavior rules for footer order; note post-apply/finish relay still distinguishes incomplete vs deferred (by intent).
 - [ ] 5.7 Mention end-of-debrief skim path (Ambiguities → Apply scope → Quick read) in `OPENSPEC_FLOW.md` capability table blurb for `/osf-explain` (one line).
 
 ## 5b. Propose handoff (`osf-propose`)
 
-- [ ] 5b.1 In **Debrief — hand off to `/osf-explain`**, note that propose close-out uses the end-of-document skim sections as the primary human approval surface for operational scope.
+- [ ] 5b.1 In **osf-propose** debrief handoff: one line that explain footer carries skim/approval context—do not instruct agents to echo footer content in Decide.
 
 ## 6. Flow docs (`OPENSPEC_FLOW.md`, `AGENTS.md`)
 

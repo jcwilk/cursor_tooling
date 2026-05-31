@@ -84,9 +84,9 @@ Add a short subsection: **Apply-complete vs merge-complete**. Merge-complete = a
    - **`## Ambiguities`** — short bullets with significance, or a single line `None` when nothing material is uncertain  
    - **`## Apply scope at shipping`** — what apply will attempt vs deferred (operational scope only)  
    - **`## Quick read`** — 3–7 narrative bullets (unchanged role, new position)  
-   - **`## What the human needs to decide`** — Approve / Refine / Abort; Refine points to **Ambiguities** (and spec-quality flags in drill-down), not a long inline flag list
+   - **`## What the human needs to decide`** — three short bullets: Approve, Refine, Abort (standard OSF wording). **Do not** index, summarize, or repeat footer sections here—the reader just scrolled past them.
 
-**Fast-pass reading order** (skill front matter): metadata → **Ambiguities** → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**. Intent/changelog remain for deep review only.
+**Fast-pass reading order** (skill front matter): metadata → footer skim (**Ambiguities** → **Apply scope at shipping** → **Quick read**). **What the human needs to decide** is optional; Intent/changelog are drill-down only.
 
 **Ambiguities** content rules (keep short):
 
@@ -104,7 +104,7 @@ Add a short subsection: **Apply-complete vs merge-complete**. Merge-complete = a
 
 ### D8 — Pre-apply approval contract (via explain)
 
-Approval before apply means resolving **Ambiguities** (or accepting **Discuss** items consciously) and accepting **Apply scope at shipping** as the execution contract—not only delta requirements. `osf-propose` handoff: debrief MUST include the footer block; **Refine** bullet is one line pointing to **Ambiguities** and drill-down **Spec-quality flags**.
+The footer carries what approval requires (uncertainties, apply scope, narrative). **Decide** is only the action menu. `osf-propose` close-out uses the explain template as today—no extra prose in Decide about footer sections.
 
 ### D9 — Version bump
 

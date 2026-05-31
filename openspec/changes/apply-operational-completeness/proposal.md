@@ -10,7 +10,7 @@ External consumers report that OSF apply runs often reach **repository-complete*
 - Add **propose discipline**: operational tasks default to unchecked; required ship/verify vs explicitly deferred is structurally unambiguous in `tasks.md`.
 - Update **flow narrative** (`OPENSPEC_FLOW.md`, `AGENTS.md`) so merge-complete ≠ apply-complete when tasks name live components.
 - Update **debrief rules** (`osf-explain`) so “optional” is reserved for explicitly deferred work, not skipped required tasks.
-- **Restructure explain output** so the footer skim block is **Ambiguities** → **Apply scope at shipping** → **Quick read** → **What the human needs to decide** (after spec drill-down). **Ambiguities** lists short bullets with significance (or `None`); operational scope no longer buries ambiguity in a Refine one-liner.
+- **Restructure explain output**: footer skim order **Ambiguities** → **Apply scope at shipping** → **Quick read**, then a minimal **What the human needs to decide** (three action lines only—no restating footer content).
 - Add **pre-apply review** norm: before `/osf-apply-changes`, explain must surface what apply will and will not execute operationally so approval matches the task contract.
 - Bump **`OPENSPEC_FLOW_VERSION`** and **`CHANGELOG.md`** when the bundle edits land.
 

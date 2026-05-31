@@ -88,7 +88,7 @@ Before an apply run is invoked for an approved change, human-facing change revie
 #### Scenario: Change includes operational tasks
 - **WHEN** a human reviews a change whose task list includes build, release, deploy, or live verification work
 - **THEN** the review summary MUST list in-scope apply work separately from explicitly deferred work before apply is recommended
-- **AND** MUST surface ambiguity flags when operational tasks lack a named environment or conflict with deferral structure
+- **AND** MUST record such issues in the debrief ambiguities section when they affect approval or apply
 
 #### Scenario: Approve implies execution contract
 - **WHEN** a human is prompted to approve an apply run after review
@@ -118,8 +118,17 @@ Human-facing whole-change debriefs MUST summarize material ambiguities in a dedi
 #### Scenario: Material ambiguity exists
 - **WHEN** review detects unclear task wording, conflicting scope, spec-quality concerns, or operational preconditions that are not explicit
 - **THEN** the debrief MUST list each issue as a short bullet with a significance indicator
-- **AND** MUST NOT bury those items only inside approve-or-refine prose
+- **AND** MUST NOT list those issues only in the approve-or-refine action lines while omitting the ambiguities section
 
 #### Scenario: No material ambiguity
 - **WHEN** review finds no ambiguity that affects approval or apply scope
 - **THEN** the ambiguities section MUST explicitly state that none exist
+
+### Requirement: Approve-or-refine action lines stay minimal
+
+Human-facing whole-change debriefs MUST keep approve-or-refine guidance to brief action lines without restating content from preceding footer sections.
+
+#### Scenario: Standard decide block
+- **WHEN** a whole-change debrief includes ambiguities, operational apply scope, and quick read sections
+- **THEN** the approve-or-refine block MUST limit itself to concise Approve, Refine, and Abort lines
+- **AND** MUST NOT cross-reference or duplicate those preceding sections
