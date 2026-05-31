@@ -80,3 +80,29 @@ Human-facing OSF debriefs MUST reserve optional or deferred wording for tasks ex
 - **WHEN** a debrief summarizes a change whose required operational tasks were not executed
 - **THEN** the debrief MUST characterize those items as incomplete or blocked
 - **AND** MUST NOT characterize them as optional follow-up
+
+### Requirement: Pre-apply review surfaces operational apply scope
+
+Before an apply run is invoked for an approved change, human-facing change review MUST summarize which operational delivery and live verification tasks are in scope for that apply run versus explicitly deferred by intent.
+
+#### Scenario: Change includes operational tasks
+- **WHEN** a human reviews a change whose task list includes build, release, deploy, or live verification work
+- **THEN** the review summary MUST list in-scope apply work separately from explicitly deferred work before apply is recommended
+- **AND** MUST surface ambiguity flags when operational tasks lack a named environment or conflict with deferral structure
+
+#### Scenario: Approve implies execution contract
+- **WHEN** a human is prompted to approve an apply run after review
+- **THEN** the approval guidance MUST state that apply will execute in-scope tasks or abort rather than merge with silent operational gaps
+
+### Requirement: Change debrief places skim sections at document end
+
+Human-facing whole-change debriefs MUST place concise skim-oriented summaries after detailed spec and delta drill-down sections so reviewers can read only the closing summaries when appropriate.
+
+#### Scenario: Whole-change debrief layout
+- **WHEN** a whole-change debrief is rendered for human review
+- **THEN** detailed intent, changelog, capability, delta, flag, design, and task drill-down sections MUST appear before the closing skim sections
+- **AND** the closing skim sections MUST include operational apply scope and a narrative quick read in that order, followed by approve-or-refine guidance
+
+#### Scenario: Fast review path
+- **WHEN** a reviewer uses the documented fast-pass reading order for a whole-change debrief
+- **THEN** they MAY read only the change metadata and the closing operational apply scope and quick read sections without reading intermediate spec drill-down

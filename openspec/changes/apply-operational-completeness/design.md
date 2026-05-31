@@ -69,11 +69,38 @@ Add a short subsection: **Apply-complete vs merge-complete**. Merge-complete = a
 
 ### D6 — Explain debrief rules
 
-`osf-explain` adds template subsection **Operational completeness** (or extends **Tasks**): list required operational tasks still `- [ ]` or lacking evidence; never call skipped required work “optional”; use **Deferred (by intent)** only for `## Explicitly deferred` items.
+`osf-explain` adds **Apply scope at shipping** (end of template): short bullets for **In scope for apply**, **Explicitly deferred (by intent)**, and **Flags** (ambiguous env, pre-checked ops without attestation, misleading “optional” section titles). Never call skipped required work “optional.”
 
-### D7 — Version bump
+### D7 — Explain template order (skim at bottom)
 
-Patch bump `OPENSPEC_FLOW_VERSION` (e.g. 1.1.1 → 1.2.0) because normative requirements change.
+**Problem:** Reviewers (including the bundle maintainer) often read only **Quick read**; it currently sits early, before spec minutia, but operational scope was not co-located and approve-time shipping scope was easy to miss.
+
+**New change-scope order:**
+
+1. `## Change:` metadata  
+2. **Intent** → **Changelog summary** (drill-down for spec reviewers)  
+3. **Capability impact** → **Delta details** → **Spec-quality flags** → **Design highlights** → **Tasks** (groups/touchpoints) → **Living-spec impact at archive**  
+4. **End block (skim path, in order):**  
+   - **`## Apply scope at shipping`** — what apply will attempt vs deferred; ambiguity flags  
+   - **`## Quick read`** — 3–7 narrative bullets (unchanged role, new position)  
+   - **`## What the human needs to decide`** — Approve / Refine / Abort; Approve text MUST reference that apply runs in-scope tasks or aborts
+
+**Fast-pass reading order** (skill front matter): metadata → jump to **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide**. Intent/changelog remain for deep review only.
+
+**Apply scope at shipping** content rules (keep short):
+
+- **In scope for apply:** unchecked required tasks that imply build, release, deploy, or live verification (one line each; no requirement names unless unavoidable).
+- **Explicitly deferred:** items under `## Explicitly deferred` (or equivalent); note owner/follow-up if stated in tasks.
+- **Flags:** only when raised—e.g. ops task checked without attestation, environment unnamed, section title implies optional but bullets read mandatory.
+- If no operational tasks: one line `No build, release, or live-environment tasks in scope for apply.`
+
+### D8 — Pre-apply approval contract (via explain)
+
+Approval before apply means accepting the **Apply scope at shipping** block as the execution contract—not only delta requirements. `osf-propose` handoff: debrief MUST include the end block; prose in **What the human needs to decide** says approving apply accepts in-scope ops or expects abort.
+
+### D9 — Version bump
+
+Bump `OPENSPEC_FLOW_VERSION` (e.g. 1.1.1 → 1.2.0) because normative requirements and explain layout change.
 
 **Alternatives considered:**
 

@@ -22,8 +22,16 @@
 
 ## 5. Explain (`osf-explain`)
 
-- [ ] 5.1 Extend change-scope template: **Operational completeness** subsection under **Tasks** — required ops tasks, deferred-by-intent only, forbidden “optional” for skipped required work.
-- [ ] 5.2 Add behavior rule: after apply/finish debrief relay, distinguish **incomplete** vs **deferred (by intent)**.
+- [ ] 5.1 **Reorder change-scope template**: move **Quick read** to the end; place new **`## Apply scope at shipping`** immediately before Quick read (after drill-down: Intent, Changelog, Capability impact, Delta details, Spec-quality flags, Design highlights, Tasks, Living-spec impact).
+- [ ] 5.2 Implement **Apply scope at shipping** (short bullets): **In scope for apply**, **Explicitly deferred (by intent)**, **Flags**; heuristics for ops-like tasks; single-line when none; never label skipped required work “optional.”
+- [ ] 5.3 Update **fast-pass reading order** in skill front matter and description: metadata → **Apply scope at shipping** → **Quick read** → optionally **What the human needs to decide** (not Intent/Changelog first).
+- [ ] 5.4 Update **What the human needs to decide**: Approve text states accepting apply = in-scope tasks run or abort; Refine cites Apply scope flags or spec-quality flags.
+- [ ] 5.5 Update **single-artifact** table rows and behavior rules for new section order; note post-apply/finish relay still distinguishes incomplete vs deferred (by intent).
+- [ ] 5.6 Mention end-of-debrief skim path in `OPENSPEC_FLOW.md` capability table blurb for `/osf-explain` (one line).
+
+## 5b. Propose handoff (`osf-propose`)
+
+- [ ] 5b.1 In **Debrief — hand off to `/osf-explain`**, note that propose close-out uses the end-of-document skim sections as the primary human approval surface for operational scope.
 
 ## 6. Flow docs (`OPENSPEC_FLOW.md`, `AGENTS.md`)
 
