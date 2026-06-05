@@ -4,7 +4,7 @@ The current sleuth refresh pipeline processes fixed-size line chunks one at a ti
 
 ## What Changes
 
-- Replace per-chunk immediate merge with a **streaming session pipeline**: consume a session from the beginning as an ordered sequence of chunks, group chunks to fit within a configurable context budget, identify relevant chunks via an indexed relevance pass, summarize only those chunks, then recursively merge summaries with deduplication.
+- Replace per-chunk immediate merge with a **streaming session pipeline**: consume a session from the beginning as an ordered sequence of chunks, group chunks to fit within a configurable context budget, identify relevant chunks via a zero-based indexed relevance pass with structured JSON output, summarize only those chunks, then recursively merge summaries with deduplication.
 - Introduce a **shared context-budget grouping** capability used by both the relevance and summarization/merge stages (gather until overflow, drop one to fit, truncate oversized leading chunks and carry remainder forward).
 - Parameterize context budget (default 16k tokens), response headroom (default 1000 tokens), per-pass summary cap (default 4000 tokens), and final summary target (default 4000 tokens).
 - On incremental refresh over an existing summary, run the same pipeline but seed recursive merge with the prior summary as the initial aggregate.

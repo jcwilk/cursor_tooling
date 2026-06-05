@@ -13,7 +13,7 @@ When processing a transcript segment during sleuth refresh, the system SHALL con
 
 ### Requirement: Relevance filtering pass
 
-Before summarization, the system SHALL group streamed chunks using context-budget grouping, present each chunk with a stable index within the segment pass, and request from the summarization service a comma-separated list of indices whose content is relevant to the sleuth lens topic. Only chunks whose indices are returned SHALL proceed to summarization.
+Before summarization, the system SHALL group streamed chunks using context-budget grouping, present each chunk with a stable zero-based index within the segment pass (starting at 0 for the first chunk of the segment), and request from the summarization service a structured machine-readable response listing the indices of chunks whose content is relevant to the sleuth lens topic. Only chunks whose indices are returned SHALL proceed to summarization.
 
 #### Scenario: Irrelevant chunks excluded
 
@@ -26,6 +26,13 @@ Before summarization, the system SHALL group streamed chunks using context-budge
 - **GIVEN** a group where the relevance pass returns no indices
 - **WHEN** summarization for that segment continues
 - **THEN** no summary content is produced from that group
+
+#### Scenario: Unparseable relevance response
+
+- **GIVEN** a relevance group where the summarization service returns a response that cannot be parsed as a structured list of indices
+- **WHEN** the relevance pass completes
+- **THEN** no chunks from that group proceed to summarization
+- **AND** refresh continues with remaining groups without advancing the checkpoint prematurely
 
 ### Requirement: Hierarchical bounded summarization
 

@@ -6,7 +6,7 @@ The human wants a streaming pipeline that:
 
 1. Consumes a session from the start as an ordered stream of chunks.
 2. Groups chunks using a shared context-budget algorithm (default 16k minus prompt overhead minus 1000 response headroom).
-3. Runs a relevance pass (indexed chunks → comma-separated relevant ids).
+3. Runs a relevance pass (zero-based indexed chunks → structured JSON list of relevant ids).
 4. Summarizes only relevant chunks in budget-sized groups (each summary capped at ~4000 tokens).
 5. Recursively merges summaries with the same grouping strategy toward a ~4000-token final summary with deduplicated facts.
 6. On incremental refresh, seeds recursive merge with the existing summary.
@@ -30,13 +30,13 @@ The human wants a streaming pipeline that:
 
 ## Decisions
 
-### 1. Chunk source — retain line-based extraction, assign stable indices
+### 1. Chunk source — retain line-based extraction, assign stable zero-based indices
 
-Continue extracting plain text from JSONL in fixed line windows (existing `CHUNK_LINES` or configurable equivalent). Each chunk receives a monotonically increasing integer index within the session segment being processed. Indices are stable for the duration of one refresh pass and appear in relevance prompts.
+Continue extracting plain text from JSONL in fixed line windows (existing `CHUNK_LINES` or configurable equivalent). Each chunk receives a monotonically increasing **zero-based** integer index within the session segment being processed (first chunk is `0`). Indices are stable for the duration of one refresh pass, are session-scoped (not reset per relevance group), and appear in relevance prompts.
 
-**Rationale:** Reuses existing JSONL extraction; indices give the LLM a compact handle for relevance selection without shipping full chunk text twice.
+**Rationale:** Reuses existing JSONL extraction; zero-based indices align with array lookup in code; indices give the LLM a compact handle for relevance selection without shipping full chunk text twice.
 
-**Alternative considered:** Message-level chunks — richer semantics but requires new parsing; defer.
+**Alternative considered:** Message-level chunks — richer semantics but requires new parsing; defer. **1-based indexing** — rejected; zero-based is simpler for implementation and equally clear when labeled explicitly in prompts.
 
 ### 2. Shared grouping module — `context_budget.rs`
 
@@ -55,13 +55,21 @@ All three stages (relevance, summarize, merge) call this module with different i
 
 | Stage | Input | Output |
 |-------|-------|--------|
-| Relevance | Indexed chunks + sleuth topic/lens | Comma-separated list of relevant chunk indices (empty or sentinel when none) |
+| Relevance | Zero-based indexed chunks + sleuth topic/lens | JSON object listing relevant chunk indices |
 | Summarize | Indexed relevant chunks + lens | Markdown summary bounded by per-pass cap instruction |
 | Merge | Multiple summaries (+ optional seed summary) + lens | Single merged summary with deduplicated facts, bounded by target cap |
 
-Prompt token overhead is measured (or estimated from template + topic) and subtracted from the context budget before grouping.
+**Relevance response contract:** the prompt instructs the model to respond with **only** a JSON object — no prose, no markdown fences — of the form:
 
-**Rationale:** Separates filtering from compression; merge prompt explicitly instructs deduplication.
+```json
+{"relevant_ids": [0, 2, 5]}
+```
+
+When nothing matches, the model returns `{"relevant_ids": []}`. The runner parses JSON, validates that `relevant_ids` is an array of integers, ignores out-of-range ids, and on parse failure treats the group as having no matches (log warning). Strip surrounding markdown code fences defensively before parse.
+
+**Rationale:** Structured JSON is a common pattern for constrained LLM output; it avoids comma-separated parsing ambiguity and reduces “helpful” preamble around bare id lists. Separates filtering from compression; merge prompt explicitly instructs deduplication.
+
+Prompt token overhead is measured (or estimated from template + topic) and subtracted from the context budget before grouping.
 
 ### 4. Per-session processing flow
 
@@ -124,7 +132,7 @@ When `summary.md` already has content beyond the title header, pass it as the **
 |------|------------|
 | Heuristic token counts cause occasional overflow/underflow vs real model limits | Conservative headroom default (1000); truncate on overflow; log warnings |
 | Relevance pass misses important chunks | Chunks are small enough that adjacent context overlaps; human reviews summary quality |
-| Comma-separated id parsing fragile | Strict parse with fallback: malformed output → treat as no matches for that group (log warning) |
+| Structured relevance response malformed | JSON parse with fence-stripping; invalid shape or out-of-range ids ignored; parse failure → no matches for that group (log warning) |
 | More LLM calls per session than old per-chunk merge | Fewer reduce calls on irrelevant material; net cost depends on session; acceptable for quality |
 | Recursive merge depth on very large sessions | Same grouping caps breadth; depth logarithmic in summary count |
 
@@ -137,5 +145,4 @@ When `summary.md` already has content beyond the title header, pass it as the **
 
 ## Open Questions
 
-- Whether relevance id `0` vs 1-based indexing reads clearer in prompts — decide at apply (document in skill).
 - Whether to persist intermediate summaries for debugging — defer unless needed during apply spike.

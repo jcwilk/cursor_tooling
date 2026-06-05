@@ -6,10 +6,10 @@
 
 ## 2. Prompt templates and LLM stages
 
-- [ ] 2.1 Add relevance prompt template (indexed chunks, comma-separated relevant ids, topic interpolation)
+- [ ] 2.1 Add relevance prompt template (zero-based indexed chunks, JSON `relevant_ids` response, topic interpolation)
 - [ ] 2.2 Add summarize prompt template with per-pass token cap instruction
 - [ ] 2.3 Add merge prompt template with deduplication and final target cap; support prior summary as seed aggregate
-- [ ] 2.4 Implement parsers for relevance id lists with safe fallback on malformed output
+- [ ] 2.4 Implement JSON relevance response parser (strip fences, validate integer array, ignore out-of-range ids; fallback to no matches on failure)
 
 ## 3. Refresh pipeline refactor
 
