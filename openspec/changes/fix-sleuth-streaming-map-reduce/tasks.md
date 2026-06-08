@@ -29,8 +29,8 @@
 ## 5. Verification
 
 - [x] 5.1 Build sleuth binary via `scripts/build-local-tools.sh`
-- [x] 5.2 Manual smoke test: refresh a sleuth against a real transcript segment; confirm bounded summary, far fewer inference calls than per-chunk path, checkpoint advances
-- [x] 5.3 Manual smoke test: incremental refresh with existing summary confirms prior content preserved through merge seed
+- [ ] 5.2 Manual smoke test: refresh a sleuth against a real transcript segment; confirm bounded summary, far fewer inference calls than per-chunk path, checkpoint advances
+- [ ] 5.3 Manual smoke test: incremental refresh with existing summary confirms prior content preserved through merge seed
 
 ## Explicitly deferred
 
