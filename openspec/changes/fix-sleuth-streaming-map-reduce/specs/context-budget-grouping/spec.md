@@ -17,20 +17,38 @@ Given an ordered sequence of text items and a context budget, the system SHALL p
 - **THEN** items are divided into consecutive groups
 - **AND** each group fits within the available budget except where a single item requires truncation
 
+### Requirement: Maximum items per group
+
+Grouping SHALL support a configurable maximum number of items per group. When adding the next item would exceed that maximum and the current group is non-empty, the system SHALL finalize the current group and begin a new group with the next item.
+
+#### Scenario: Count cap splits a token-fitting group
+
+- **GIVEN** items that would fit together by token estimate alone
+- **AND** adding one more item would exceed the configured maximum item count
+- **WHEN** grouping is applied
+- **THEN** the finalized group contains at most the configured maximum number of items
+- **AND** remaining items continue in the next group in order
+
+#### Scenario: Default maximum supports short id lists
+
+- **GIVEN** no explicit maximum item count configuration
+- **WHEN** grouping runs for relevance or summarization stages
+- **THEN** each group contains at most approximately twenty items
+
 ### Requirement: Overflow back-off
 
-When adding the next item would exceed the available budget and the current group already contains at least one item, the system SHALL remove the most recently added item from the current group, finalize that group, and begin the next group starting with the removed item.
+When adding the next item would exceed the available token budget and the current group already contains at least one item, the system SHALL remove the most recently added item from the current group, finalize that group, and begin the next group starting with the removed item.
 
 #### Scenario: Back-off produces a fitting group
 
-- **GIVEN** a partially filled group where the next item would cause overflow
+- **GIVEN** a partially filled group where the next item would cause token overflow
 - **WHEN** overflow back-off runs
 - **THEN** the finalized group excludes the overflowing item
 - **AND** the overflowing item opens the next group
 
 ### Requirement: Leading item truncation
 
-When the first item alone exceeds the available budget, the system SHALL truncate that item to the largest prefix that fits, emit the prefix as a group member, and carry the remainder forward as the next item to process in order.
+When the first item alone exceeds the available token budget, the system SHALL truncate that item to the largest prefix that fits, emit the prefix as a group member, and carry the remainder forward as the next item to process in order.
 
 #### Scenario: Oversized leading item is split
 

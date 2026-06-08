@@ -1,28 +1,29 @@
 ## Why
 
-The current sleuth refresh pipeline processes fixed-size line chunks one at a time and merges each extraction immediately into the running summary. That approach ignores model context limits, cannot filter irrelevant material before summarization, and produces noisy incremental merges on long sessions. A streaming, context-budget-aware map/reduce pipeline will scale to large transcripts while keeping summaries focused and within bounded size.
+The sleuth refresh runner still processes transcript material in large chunks and merges each extraction immediately into the running summary. That produces many sequential inference calls, ignores model context limits, cannot filter irrelevant material before summarization, and lets summaries grow without bound. A batched pipeline — small indexed chunks, relevance filtering, grouped summarization, and recursive reduction — matches the intended design and scales to long sessions.
 
 ## What Changes
 
-- Replace per-chunk immediate merge with a **streaming session pipeline**: consume a session from the beginning as an ordered sequence of chunks, group chunks to fit within a configurable context budget, identify relevant chunks via a zero-based indexed relevance pass with structured JSON output, summarize only those chunks, then recursively merge summaries with deduplication.
-- Introduce a **shared context-budget grouping** capability used by both the relevance and summarization/merge stages (gather until overflow, drop one to fit, truncate oversized leading chunks and carry remainder forward).
-- Parameterize context budget (default 16k tokens), response headroom (default 1000 tokens), per-pass summary cap (default 4000 tokens), and final summary target (default 4000 tokens).
-- On incremental refresh over an existing summary, run the same pipeline but seed recursive merge with the prior summary as the initial aggregate.
-- Update the sleuth refresh runner and skill documentation to reflect the new behavior.
+- Replace per-chunk immediate merge with a **session pipeline**: stream small indexed chunks, **filter** each budget-sized batch to relevant ids, **drop** non-selected chunks, **summarize** filtered chunks in budget-sized batches, then **recursively reduce** pass summaries until one bounded result remains.
+- Size chunks as **small granular units** (typically single transcript lines) with a **cap on how many chunks appear in one relevance or summarize batch** (default ~20) so the model is not asked to choose among hundreds of ids at once.
+- Pack batches using **shared context-budget grouping** that accounts for prompt overhead and response headroom at every stage.
+- On incremental refresh, run the full pipeline on new material first, then merge with the prior summary via the same recursive reduce (prior summary as seed aggregate only at that final merge).
+- Parameterize context budget, response headroom, per-pass summary cap, final summary target, chunk granularity, and max chunks per batch (sensible defaults documented in design).
+- Update sleuth skill documentation to describe the pipeline at a high level.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `context-budget-grouping`: Reusable rules for packing ordered text items into groups that fit within a model context budget after accounting for prompt overhead and response headroom, including truncation of oversized leading items.
+- `context-budget-grouping`: Reusable rules for packing ordered items into consecutive groups that respect both a token budget (after overhead and headroom) and an optional maximum item count per group.
 
 ### Modified Capabilities
 
-- `conversation-sleuths`: Replace lazy incremental per-chunk merge with streaming relevance filtering and hierarchical map/reduce summarization bounded by configurable token limits; incremental refresh merges new session output into prior summary via the same reduce path.
+- `conversation-sleuths`: Replace per-chunk immediate merge with relevance filtering, batched summarization, and hierarchical recursive reduction bounded by configurable limits; incremental refresh merges new session output into prior summary only at the final reduce step.
 
 ## Impact
 
-- **Sleuth runner** (Rust CLI under `.cursor/skills/sleuths/`): refresh pipeline, prompt templates, configuration defaults.
-- **Living spec**: `conversation-sleuths` gains new requirements; new sibling spec `context-budget-grouping`.
-- **Skill docs**: `.cursor/skills/sleuths/SKILL.md` — describe new pipeline behavior at a high level.
-- **No breaking API** for humans invoking refresh; checkpoint and summary artifact locations unchanged. Summaries produced after refresh may differ in structure/quality from the old per-chunk merge.
+- Sleuth refresh runner and local processing configuration.
+- Living spec: `conversation-sleuths` gains new requirements; new sibling spec `context-budget-grouping`.
+- Skill docs for `/sleuths`.
+- No breaking change for humans invoking refresh; checkpoint and summary artifact locations unchanged. Summary content and structure may differ after upgrade.

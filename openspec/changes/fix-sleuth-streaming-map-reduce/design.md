@@ -1,148 +1,158 @@
 ## Context
 
-The sleuth refresh runner today reads transcript segments in fixed 40-line chunks, runs a map extraction on each chunk, and immediately reduces the result into the running summary. There is no relevance pre-filter, no batching against model context limits, and no hierarchical merge — so long sessions produce many small LLM calls and summaries that grow unbounded in merge noise.
+The refresh runner on the apply branch still uses a per-chunk map followed by immediate reduce into a growing summary (large char-budget chunks, no id-based filter). An exploratory implementation on `explore/fix-sleuth-streaming-map-reduce` introduced relevance → summarize → recursive reduce but defaulted to 40-line chunks and token-only grouping without a hard cap on items per batch.
 
-The human wants a streaming pipeline that:
+The human’s target pipeline:
 
-1. Consumes a session from the start as an ordered stream of chunks.
-2. Groups chunks using a shared context-budget algorithm (default 16k minus prompt overhead minus 1000 response headroom).
-3. Runs a relevance pass (zero-based indexed chunks → structured JSON list of relevant ids).
-4. Summarizes only relevant chunks in budget-sized groups (each summary capped at ~4000 tokens).
-5. Recursively merges summaries with the same grouping strategy toward a ~4000-token final summary with deduplicated facts.
-6. On incremental refresh, seeds recursive merge with the existing summary.
+1. **Small chunks** — often one transcript line each; may grow lines only when needed to stay within a manageable batch size.
+2. **Bounded id lists** — when packing a relevance batch, aim for **at most ~20 chunks** so the model selects from a short indexed list, not hundreds of ids.
+3. **Filter first** — relevance pass returns which chunk indices match the sleuth lens; non-selected chunks are dropped before any summarization.
+4. **Batch summarize** — pack filtered chunks into summarize batches (same budget + count rules); each batch produces one pass summary.
+5. **Recursive reduce** — if multiple pass summaries exist, merge them in budget-sized batches until one summary remains; skip this step when only one pass summary exists.
+6. **Incremental** — prior summary participates only in the final merge seed, not in every per-chunk step.
+
+### Walkthrough (contrived)
+
+80 transcript lines → chunk into **8 chunks** of 10 lines each (indices 0–7). All 8 fit one relevance batch (&lt;20 cap, within token budget).
+
+- **Relevance**: one call → `{"relevant_ids": [1, 3, 5, 7]}` (4 chunks kept).
+- **Summarize**: one call with chunks 1, 3, 5, 7 → **one pass summary**.
+- **Reduce**: only one pass summary → **no further merge** for this segment.
+
+Contrast with the old path: up to **8 map + up to 8 reduce** calls (16 sequential), each reduce re-sending the entire growing summary.
 
 ## Goals / Non-Goals
 
 **Goals:**
 
-- Implement the streaming relevance → summarize → recursive-reduce pipeline per session segment.
-- Extract shared context-budget grouping into reusable logic consumed by relevance, summarization, and merge stages.
-- Parameterize context budget, response headroom, per-pass summary cap, and final summary target (sensible defaults: 16k, 1000, 4000, 4000).
-- Preserve checkpoint semantics: only unprocessed transcript tail is consumed; failed refresh does not advance checkpoints.
-- Keep summary and checkpoint artifact locations unchanged.
+- Implement relevance → batched summarize → recursive reduce per transcript segment.
+- Small default chunk granularity with stable zero-based indices per segment pass.
+- Enforce **max chunks per batch** (default 20) in addition to token-budget grouping at relevance, summarize, and merge stages.
+- Shared grouping module for all stages.
+- Preserve checkpoint semantics; keep artifact locations unchanged.
+- Prior summary as merge seed only at the end of incremental refresh.
 
 **Non-Goals:**
 
 - Changing transcript discovery, slug resolution, or checkpoint key structure.
-- Token-accurate counting tied to a specific model tokenizer — approximate counting (e.g. chars/4 or a lightweight heuristic) is acceptable for v1 if documented.
-- Parallel LLM calls across groups within a session.
+- Model-specific tokenizers (heuristic estimation is acceptable for v1).
+- Parallel inference calls within a session.
 - Changing sleuth query YAML schema or human setup workflow.
+- Pipelining summarize while relevance is still running on later groups (phased: finish relevance collection for a segment, then summarize, then reduce — acceptable for v1).
 
 ## Decisions
 
-### 1. Chunk source — retain line-based extraction, assign stable zero-based indices
+### 1. Chunk formation — small units, stable indices
 
-Continue extracting plain text from JSONL in fixed line windows (existing `CHUNK_LINES` or configurable equivalent). Each chunk receives a monotonically increasing **zero-based** integer index within the session segment being processed (first chunk is `0`). Indices are stable for the duration of one refresh pass, are session-scoped (not reset per relevance group), and appear in relevance prompts.
+- Extract plain text from JSONL in **small line windows**; default **1 line per chunk** when not configured otherwise.
+- Each chunk gets a monotonically increasing **zero-based index** for the segment pass (first chunk is `0`); indices are stable and session-scoped.
+- **Optional line growth**: configuration MAY allow merging consecutive lines into one chunk up to a maximum line count when a single line is empty or trivially small — implementation detail; behavior goal is “small enough that a full relevance batch stays readable.”
 
-**Rationale:** Reuses existing JSONL extraction; zero-based indices align with array lookup in code; indices give the LLM a compact handle for relevance selection without shipping full chunk text twice.
+**Rationale:** One-line chunks maximize filter precision; growth is an optimization, not the default story.
 
-**Alternative considered:** Message-level chunks — richer semantics but requires new parsing; defer. **1-based indexing** — rejected; zero-based is simpler for implementation and equally clear when labeled explicitly in prompts.
+### 2. Dual constraint grouping — token budget **and** max items per group
 
-### 2. Shared grouping module — `context_budget.rs`
+`group_by_budget` (shared module) takes:
 
-Implement one function (conceptually: `group_by_budget(items, budget)`) that:
+- ordered items with token estimates,
+- available content budget (context budget − prompt overhead − response headroom),
+- **max items per group** (default **20**).
 
-- Accepts ordered items with precomputed token estimates.
-- Accumulates items until adding the next would exceed `budget - prompt_tokens - response_headroom`.
-- When overflow occurs, if the group has more than one item, drop the last added item and emit the group; re-process dropped item in the next group.
-- When the first (only) item in a candidate group exceeds the budget alone, truncate it to fit, emit the truncated prefix, and carry the remainder as the next item (same index or split index — implementation detail; behavior: no content lost across groups).
+Algorithm (same overflow back-off and leading truncation as today):
 
-All three stages (relevance, summarize, merge) call this module with different item types mapped to token estimates.
+- Accumulate items until **either** the next item would exceed the token budget **or** the group already holds `max_items` items.
+- On token overflow with 2+ items: back off last item to next group.
+- On item-count cap: finalize group, start next group with remaining items.
+- On oversized leading item: truncate prefix to fit budget, carry remainder forward.
 
-**Rationale:** Human explicitly requested shared behavior; single module prevents drift between stages.
+All three stages (relevance, summarize, merge) use this module. **Relevance** and **summarize** default `max_items = 20`. **Merge** groups summary strings with the same rules (count cap prevents merging too many summaries in one prompt).
 
-### 3. Three LLM prompt templates
+**Rationale:** Token-only grouping allowed 40-line chunks to pack few items but tiny lines could still produce huge id lists; the human’s “~1/20 of context → at most 20 chunks” policy is enforced explicitly.
+
+### 3. Three inference stages
 
 | Stage | Input | Output |
 |-------|-------|--------|
-| Relevance | Zero-based indexed chunks + sleuth topic/lens | JSON object listing relevant chunk indices |
-| Summarize | Indexed relevant chunks + lens | Markdown summary bounded by per-pass cap instruction |
-| Merge | Multiple summaries (+ optional seed summary) + lens | Single merged summary with deduplicated facts, bounded by target cap |
+| Relevance | Indexed chunks in one group + sleuth lens | JSON `{"relevant_ids": […]}` — zero-based indices only |
+| Summarize | Indexed **filtered** chunks in one group + lens | Markdown summary bounded by per-pass cap |
+| Merge | Multiple summaries (+ optional seed) + lens | Single merged summary, deduplicated, bounded by target cap |
 
-**Relevance response contract:** the prompt instructs the model to respond with **only** a JSON object — no prose, no markdown fences — of the form:
+**Relevance contract:** JSON only; empty list when nothing matches; parse failure → treat group as no matches (log warning); strip markdown fences defensively; ignore out-of-range ids.
 
-```json
-{"relevant_ids": [0, 2, 5]}
-```
+**Drop rule:** Chunks whose indices are not returned are **excluded** from all later stages for that segment pass.
 
-When nothing matches, the model returns `{"relevant_ids": []}`. The runner parses JSON, validates that `relevant_ids` is an array of integers, ignores out-of-range ids, and on parse failure treats the group as having no matches (log warning). Strip surrounding markdown code fences defensively before parse.
-
-**Rationale:** Structured JSON is a common pattern for constrained LLM output; it avoids comma-separated parsing ambiguity and reduces “helpful” preamble around bare id lists. Separates filtering from compression; merge prompt explicitly instructs deduplication.
-
-Prompt token overhead is measured (or estimated from template + topic) and subtracted from the context budget before grouping.
-
-### 4. Per-session processing flow
+### 4. Per-segment processing flow (phased v1)
 
 For each pending transcript segment (checkpoint tail → end):
 
 ```
-chunks := stream from start_line to end_line
-for each relevance_group in group(chunks):
-    ids := LLM relevance(relevance_group)
-    relevant_chunks += lookup(ids)
+chunks := stream small indexed chunks from start_line to end_line
+relevant := []
+for each group in group(chunks, budget, max_items=20):
+    ids := LLM relevance(group)
+    relevant += lookup(ids)   // drops non-selected
 
-intermediate_summaries := []
-for each summary_group in group(relevant_chunks):
-    intermediate_summaries += LLM summarize(summary_group)
+pass_summaries := []
+for each group in group(relevant, budget, max_items=20):
+    pass_summaries += LLM summarize(group)
 
-final := recursive_reduce(intermediate_summaries, target=4000)
-if existing summary non-empty:
-    final := recursive_reduce([existing_summary, final], seed=existing_summary)
+segment_summary := recursive_reduce(pass_summaries, target=final_cap)
+```
+
+After all segments in the refresh batch:
+
+```
+if prior summary non-empty:
+    summary := recursive_reduce([prior_summary, …segment_summaries…], seed=prior_summary)
 else:
-    store final as summary
-advance checkpoint to end_line
+    summary := combine segment_summary results via recursive_reduce
 ```
 
-`recursive_reduce` repeatedly groups summaries, merges each group via LLM, and repeats until one summary remains within the target budget (or a single group merge suffices).
+`recursive_reduce`: while more than one summary, group them (budget + count cap), merge each group via LLM, repeat until one summary within final target.
 
-**Rationale:** Matches human-specified pipeline; existing summary participates only in the final reduce tree as seed aggregate.
+**Single pass summary:** recursive reduce is a no-op (matches the 80-line / 4-relevant example).
 
-### 5. Configuration — extend `.sleuths/config.yaml`
+### 5. Configuration (local, optional)
 
-Add optional `processing` section with defaults:
+Extend machine-local sleuth config with optional processing defaults (exact keys in implementation; documented in skill):
 
-```yaml
-processing:
-  context_budget_tokens: 16384
-  response_headroom_tokens: 1000
-  pass_summary_cap_tokens: 4000
-  final_summary_target_tokens: 4000
-  chunk_lines: 40
-```
+| Parameter | Default | Role |
+|-----------|---------|------|
+| Context budget tokens | 16384 | Total window for packing |
+| Response headroom tokens | 1000 | Reserved for model output |
+| Pass summary cap tokens | 4000 | Upper bound instruction per summarize pass |
+| Final summary target tokens | 4000 | Stop condition for recursive reduce |
+| Chunk lines | 1 | Lines merged per chunk |
+| Max chunks per batch | 20 | Item count cap per relevance/summarize/merge group |
 
-Omitted keys fall back to defaults. Document in skill README.
-
-**Rationale:** Human asked for parameterized limits with stated defaults; YAML keeps machine-local tuning without changing query definitions.
+Omitted keys use defaults.
 
 ### 6. Token estimation
 
-Use a simple heuristic (`ceil(char_count / 4)`) for v1 budget accounting, applied consistently across grouping stages. Log when truncation occurs.
+`ceil(char_count / 4)` for v1, applied consistently. Log truncation events.
 
-**Rationale:** Avoids pulling in model-specific tokenizers; good enough for budget packing. Can refine later.
+### 7. Incremental refresh
 
-### 7. Incremental refresh with prior summary
-
-When `summary.md` already has content beyond the title header, pass it as the **seed aggregate** into the final recursive reduce alongside new session output — not into every map pass. New session material still runs relevance → summarize → reduce independently first; then `{prior_summary, new_session_summary}` merge via the same recursive reduce with prior summary as starting aggregate value in merge prompts.
-
-**Rationale:** Matches human intent: "start with the prior summary as the aggregate value" during recursive reduction, not re-scanning old material.
+New tail material runs the full segment pipeline independently. Existing `summary.md` content is passed as **seed aggregate** only in the final cross-segment / cross-refresh recursive reduce — never in per-chunk map-style calls.
 
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
 |------|------------|
-| Heuristic token counts cause occasional overflow/underflow vs real model limits | Conservative headroom default (1000); truncate on overflow; log warnings |
-| Relevance pass misses important chunks | Chunks are small enough that adjacent context overlaps; human reviews summary quality |
-| Structured relevance response malformed | JSON parse with fence-stripping; invalid shape or out-of-range ids ignored; parse failure → no matches for that group (log warning) |
-| More LLM calls per session than old per-chunk merge | Fewer reduce calls on irrelevant material; net cost depends on session; acceptable for quality |
-| Recursive merge depth on very large sessions | Same grouping caps breadth; depth logarithmic in summary count |
+| Heuristic tokens vs real model limits | Conservative headroom; truncate; log warnings |
+| Relevance misses important chunks | Small chunks; human reviews summary quality |
+| Malformed relevance JSON | Parse failure → no matches for that group; continue |
+| More relevance calls on very long sessions | Batched by 20 chunks; still far fewer than per-chunk map+reduce |
+| 1-line chunks increase chunk count | Count cap keeps relevance prompts bounded; irrelevant lines filtered cheaply |
 
 ## Migration Plan
 
-1. Ship updated runner behind same CLI (`sleuth refresh`).
-2. Existing checkpoints compatible — next refresh processes tail with new pipeline.
-3. Existing summaries used as merge seed; first refresh after upgrade may reshape summary format slightly.
-4. Rollback: revert runner binary; checkpoints and summaries remain valid.
+1. Ship behind same `sleuth refresh` CLI.
+2. Checkpoints compatible — next refresh processes tail with new pipeline.
+3. Existing summaries used as merge seed; first refresh after upgrade may reshape content.
+4. Rollback: revert runner binary.
 
 ## Open Questions
 
-- Whether to persist intermediate summaries for debugging — defer unless needed during apply spike.
+- Persist intermediate pass summaries for debugging — deferred.
+- Adaptive chunk line growth heuristics beyond fixed `chunk_lines` — defer unless quality issues appear.
