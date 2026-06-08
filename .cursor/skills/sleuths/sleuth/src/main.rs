@@ -1,10 +1,17 @@
 mod checkpoint;
+mod chunk;
 mod config;
+mod context_budget;
 mod discover;
+mod inference;
 mod jsonl_extract;
-mod ollama;
+mod pipeline;
+mod prompts;
+mod query;
 mod refresh;
+mod relevance;
 mod slug;
+mod token;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

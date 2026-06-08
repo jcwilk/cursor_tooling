@@ -2,7 +2,7 @@
 name = "sleuth"
 version = "0.1.0"
 edition = "2021"
-description = "Incremental map/reduce summarization of Cursor agent transcripts"
+description = "Incremental relevance-filtered summarization of Cursor agent transcripts"
 
 [[bin]]
 name = "sleuth"
