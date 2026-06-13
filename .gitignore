@@ -1,3 +1,6 @@
 .env
 .sleuths/
-.cursor/skills/sleuths/target/
+.venv/
+.venv-sleuth/
+__pycache__/
+*.egg-info/

@@ -43,7 +43,7 @@ disable-model-invocation: true
 
    Do **not** copy unrelated `.cursor/` entries from reference if the reference repo ever grows beyond OSF.
 
-   After sync, remind the human to run **`scripts/build-local-tools.sh`** once if the bundle includes Rust tools (e.g. conversation sleuths). Ensure **`.gitignore`** includes **`.sleuths/`** and **`.cursor/skills/sleuths/target/`** (merge if the target already has a root `.gitignore`). Remove stale **`.cursor/build-local-tools.sh`** on upgrade if present.
+   After sync, remind the human to run **`scripts/build-local-tools.sh`** once if the bundle includes local tools (e.g. conversation sleuths Python package). Ensure **`.gitignore`** includes **`.sleuths/`** (merge if the target already has a root `.gitignore`). Remove stale **`.cursor/build-local-tools.sh`** on upgrade if present.
 
 ## Install (target has no OSF or no version file)
 

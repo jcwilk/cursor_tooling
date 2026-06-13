@@ -14,7 +14,7 @@ This repository is a **small, portable reference** for running [OpenSpec](https:
 | **`.cursor/skills/persist/`** | Commit/push hygiene used by propose/finish flows. |
 | **`.cursor/skills/openspec-flow-install/`** | **Install or upgrade** this bundle into another repo (compare versions, copy files). |
 | **`.cursor/skills/sleuths/`** | Conversation sleuths — incremental summaries of local agent transcripts (`/sleuths`). |
-| **`scripts/build-local-tools.sh`** | One-time build for bundled Rust CLIs (e.g. sleuth). |
+| **`scripts/build-local-tools.sh`** | One-time install for bundled skill CLIs (e.g. sleuth Python package). |
 
 Your **application** code and **`openspec/`** tree live in whatever project you attach this bundle to; initialize OpenSpec in that project with the upstream CLI when you are ready.
 
@@ -22,7 +22,7 @@ Your **application** code and **`openspec/`** tree live in whatever project you 
 
 - Node.js **20.19+** (for `npx @fission-ai/openspec@latest …`).
 - Cursor with **Task** subagents enabled.
-- **Rust** (for building conversation sleuths locally) and an **Ollama-compatible inference endpoint** (configured in gitignored `.sleuths/config.yaml`; required only when refreshing sleuths).
+- **Python 3.11+** (for conversation sleuths) and an **inference endpoint** configured in gitignored `.sleuths/config.yaml` (required only when refreshing sleuths).
 
 ## Quick start (in a consumer project)
 
