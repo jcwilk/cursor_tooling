@@ -118,6 +118,20 @@ Refresh scans local transcripts (primary workspace slug + `git worktree list` + 
 
 On incremental refresh, an existing `summary.md` is used as a **merge seed** only in the final recursive reduce across new segment output — not during per-chunk steps.
 
+## Reset (full rebuild)
+
+To regenerate a summary from scratch (e.g. after changing the inference model), reset clears the checkpoint and summary without touching the query definition:
+
+```bash
+# one sleuth
+.cursor/skills/sleuths/target/release/sleuth reset --project-root . --sleuth <id>
+
+# all sleuths
+.cursor/skills/sleuths/target/release/sleuth reset --project-root . --all
+```
+
+Then run `refresh` as usual. Reset does not call the inference endpoint.
+
 ## Where artifacts live
 
 | Path | Purpose |

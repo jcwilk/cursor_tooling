@@ -10,6 +10,7 @@ mod prompts;
 mod query;
 mod refresh;
 mod relevance;
+mod reset;
 mod slug;
 mod token;
 
@@ -40,6 +41,16 @@ enum Commands {
         #[arg(long)]
         all: bool,
     },
+    /// Remove summary and checkpoint so the next refresh starts from scratch
+    Reset {
+        /// Sleuth id (matches `.sleuths/queries/<id>.yaml`)
+        #[arg(long)]
+        sleuth: Option<String>,
+
+        /// Reset every sleuth under `.sleuths/queries/`
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -52,6 +63,15 @@ fn main() -> Result<()> {
                 refresh::refresh_all(&project_root)?;
             } else if let Some(id) = sleuth {
                 refresh::refresh_sleuth(&project_root, &id)?;
+            } else {
+                anyhow::bail!("specify --sleuth <id> or --all");
+            }
+        }
+        Commands::Reset { sleuth, all } => {
+            if all {
+                reset::reset_all(&project_root)?;
+            } else if let Some(id) = sleuth {
+                reset::reset_sleuth(&project_root, &id)?;
             } else {
                 anyhow::bail!("specify --sleuth <id> or --all");
             }
