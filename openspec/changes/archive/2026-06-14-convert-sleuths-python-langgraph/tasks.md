@@ -50,7 +50,7 @@
 
 ## 8. Archive (apply finish)
 
-- [ ] 8.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` delta into living specs
+- [x] 8.1 Run `/osf-apply-finish` to archive this change and merge `conversation-sleuths` delta into living specs
 
 ## Explicitly deferred
 
