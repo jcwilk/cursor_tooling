@@ -118,7 +118,7 @@ sleuth --project-root . refresh --sleuth <id>
 sleuth --project-root . refresh --all
 ```
 
-Pass **`--verbose`** (global) to log per-segment and per-inference progress on stderr. For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
+Progress is logged to stderr (resolved transcript slugs, segment count, context-budget notices, inference call total). For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
 
 Refresh scans local transcripts (primary workspace slug + `git worktree list` + `extra_transcript_slugs`), processes only segments after the checkpoint, and calls the configured inference endpoint. **If the endpoint is unreachable, refresh fails and checkpoints do not advance.**
 

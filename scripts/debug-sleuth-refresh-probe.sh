@@ -7,7 +7,7 @@ WORKTREE="${SLEUTH_PROJECT_ROOT:-/home/user/.cursor/worktrees/cursor_tooling/801
 SLEUTH_ID="${SLEUTH_ID:-tooling}"
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
 ARTIFACT_DIR="${HOME_AI_ROOT}/.pi-run/scratch/sleuth-refresh-debug-${RUN_ID}"
-SLEUTH_BIN="${WORKTREE}/.cursor/skills/sleuths/target/release/sleuth"
+SLEUTH_BIN="${WORKTREE}/.venv/bin/sleuth"
 RPC_ENV="${HOME_AI_ROOT}/ansible/pi-agent-rpc.env"
 
 mkdir -p "${ARTIFACT_DIR}"
@@ -46,16 +46,16 @@ grep -E '^(PI_AGENT_TEXT_BASE_URL|PI_AGENT_TEXT_MODEL)=' "${RPC_ENV}" \
 
 log "reset ${SLEUTH_ID}"
 RESET_START=$(date +%s.%N)
-"${SLEUTH_BIN}" --verbose reset --project-root "${WORKTREE}" --sleuth "${SLEUTH_ID}" \
+"${SLEUTH_BIN}" --project-root "${WORKTREE}" reset --sleuth "${SLEUTH_ID}" \
   2> >(tee -a "${ARTIFACT_DIR}/sleuth-reset.log" >&2)
 RESET_END=$(date +%s.%N)
 printf 'reset_elapsed_sec=%.3f\n' "$(echo "${RESET_END} - ${RESET_START}" | bc)" \
   | tee "${ARTIFACT_DIR}/timing.txt"
 
-log "refresh ${SLEUTH_ID} (verbose)"
+log "refresh ${SLEUTH_ID}"
 REFRESH_START=$(date +%s.%N)
 set +e
-"${SLEUTH_BIN}" --verbose refresh --project-root "${WORKTREE}" --sleuth "${SLEUTH_ID}" \
+"${SLEUTH_BIN}" --project-root "${WORKTREE}" refresh --sleuth "${SLEUTH_ID}" \
   2> >(tee -a "${ARTIFACT_DIR}/sleuth-refresh.log" >&1)
 REFRESH_EXIT=$?
 set -e
@@ -73,21 +73,16 @@ log "inference snapshot (after)"
 ) > "${ARTIFACT_DIR}/inference-snapshot-after.yaml" 2>> "${ARTIFACT_DIR}/harness.log" || true
 
 log "summarize inference calls from sleuth log"
-grep -E '^\[inference #' "${ARTIFACT_DIR}/sleuth-refresh.log" \
+grep -E 'inference calls this refresh:' "${ARTIFACT_DIR}/sleuth-refresh.log" \
   | tee "${ARTIFACT_DIR}/inference-calls.txt" \
-  | awk '
-    / ok elapsed=/ {
-      match($0, /#([0-9]+)\] ok elapsed=([0-9.]+)s response_chars=([0-9]+)/, a)
-      if (a[1] != "") { sum+=a[2]; ok++; chars+=a[3]; if (a[2]>max) max=a[2] }
-    }
-    END {
-      printf "inference_calls_ok=%d\n", ok+0
-      if (ok>0) printf "inference_avg_sec=%.2f\ninference_max_sec=%.2f\ninference_total_response_chars=%d\n", sum/ok, max, chars
-    }' >> "${ARTIFACT_DIR}/timing.txt"
+  | awk '{
+      match($0, /inference calls this refresh: ([0-9]+)/, a)
+      if (a[1] != "") printf "inference_calls_total=%s\n", a[1]
+    }' >> "${ARTIFACT_DIR}/timing.txt" || true
 
 log "summarize segments"
-grep -E 'segment [0-9]+/[0-9]+' "${ARTIFACT_DIR}/sleuth-refresh.log" \
-  | tee "${ARTIFACT_DIR}/segments.txt"
+grep -E 'processing [0-9]+ segment' "${ARTIFACT_DIR}/sleuth-refresh.log" \
+  | tee "${ARTIFACT_DIR}/segments.txt" || true
 
 log "done refresh_exit=${REFRESH_EXIT} artifacts=${ARTIFACT_DIR}"
 exit "${REFRESH_EXIT}"
