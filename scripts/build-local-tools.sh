@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
-# Build release binaries for all Rust crates shipped under .cursor/skills/.
+# Build local tools shipped under .cursor/skills/ (Python installs into .venv; Rust crates if any).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SKILLS_DIR="$REPO_ROOT/.cursor/skills"
 BUILT=0
+PYTHON="${PYTHON:-python3}"
+VENV="$REPO_ROOT/.venv"
+
+if [[ ! -x "$VENV/bin/pip" ]]; then
+  echo "==> creating $VENV"
+  "$PYTHON" -m venv "$VENV"
+fi
+PIP="$VENV/bin/pip"
+
+for pyproject in "$SKILLS_DIR"/*/pyproject.toml; do
+  [[ -f "$pyproject" ]] || continue
+  dir="$(dirname "$pyproject")"
+  echo "==> pip install $dir"
+  "$PIP" install "$dir"
+  rm -rf "$dir/build" "$dir"/*.egg-info
+  BUILT=$((BUILT + 1))
+done
 
 for manifest in "$SKILLS_DIR"/*/Cargo.toml; do
   [[ -f "$manifest" ]] || continue
@@ -15,8 +32,8 @@ for manifest in "$SKILLS_DIR"/*/Cargo.toml; do
 done
 
 if [[ "$BUILT" -eq 0 ]]; then
-  echo "No Rust crates found under $SKILLS_DIR"
+  echo "No Python or Rust skill packages found under $SKILLS_DIR"
   exit 1
 fi
 
-echo "Done. Binaries are under each crate's target/release/ (gitignored)."
+echo "Done. Activate with: source $VENV/bin/activate"

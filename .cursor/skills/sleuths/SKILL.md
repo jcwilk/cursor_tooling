@@ -11,19 +11,21 @@ description: Establish and refresh human-defined lenses over local Cursor agent 
 
 > Sleuth summaries are derived from local agent transcripts and may contain secrets. **`.sleuths/` is gitignored — do not commit it.**
 
+> **LangSmith (optional):** When cloud tracing is enabled via `.sleuths/secrets.env`, LLM prompts (including transcript-derived content) are exported to LangSmith. Default behavior is fully local with no cloud export.
+
 ## One-time setup (per machine)
 
-Build the bundled Rust CLI once:
+**Prerequisites:** Python **3.11+**
+
+Install the bundled Python CLI once:
 
 ```bash
 scripts/build-local-tools.sh
 ```
 
-Binary path (gitignored):
+This installs into the repo `.venv` (gitignored) so no build metadata lands in the skill source tree. Re-run after pulling sleuth code changes.
 
-```text
-.cursor/skills/sleuths/target/release/sleuth
-```
+Entry point: `sleuth` (console script on PATH when your shell/venv includes the pip install target).
 
 Configure summarization in `.sleuths/config.yaml` (**you must create this file before any refresh** — it is not auto-generated, not committed, and sleuth **never** installs or starts a local inference daemon):
 
@@ -69,6 +71,17 @@ ollama:
 
 Point `base_url` and `model` at **your** inference server (typically remote). Refresh only sends HTTP requests to that URL; it does not spawn a local daemon or pull models here.
 
+### Optional LangSmith tracing
+
+Copy the committed stub and fill in credentials:
+
+```bash
+cp .cursor/skills/sleuths/secrets.example.env .sleuths/secrets.env
+# edit .sleuths/secrets.env — set LANGSMITH_API_KEY and optionally LANGSMITH_PROJECT
+```
+
+`.sleuths/secrets.env` is gitignored. Tracing is opt-in; refresh succeeds without LangSmith connectivity. If tracing export fails while inference succeeds, sleuth emits a warning and continues.
+
 ## Establish a new sleuth
 
 When the human describes what to track:
@@ -88,9 +101,7 @@ prompt: |
 3. Run initial refresh:
 
 ```bash
-.cursor/skills/sleuths/target/release/sleuth refresh \
-  --project-root . \
-  --sleuth database-modifications
+sleuth --project-root . refresh --sleuth database-modifications
 ```
 
 4. Show the human `.sleuths/<id>/summary.md` and confirm it looks reasonable.
@@ -101,10 +112,10 @@ Re-run when new agent sessions have accumulated (human-invoked only in v1):
 
 ```bash
 # one sleuth
-.cursor/skills/sleuths/target/release/sleuth refresh --project-root . --sleuth <id>
+sleuth --project-root . refresh --sleuth <id>
 
 # all sleuths under .sleuths/queries/
-.cursor/skills/sleuths/target/release/sleuth refresh --project-root . --all
+sleuth --project-root . refresh --all
 ```
 
 Pass **`--verbose`** (global) to log per-segment and per-inference progress on stderr. For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
@@ -112,6 +123,8 @@ Pass **`--verbose`** (global) to log per-segment and per-inference progress on s
 Refresh scans local transcripts (primary workspace slug + `git worktree list` + `extra_transcript_slugs`), processes only segments after the checkpoint, and calls the configured inference endpoint. **If the endpoint is unreachable, refresh fails and checkpoints do not advance.**
 
 ### Refresh pipeline (per segment)
+
+Orchestration uses a LangGraph `StateGraph` per segment:
 
 1. **Chunk** — stream small indexed chunks from the checkpoint tail (default: one transcript line per chunk).
 2. **Relevance** — batch chunks (token budget + max ~20 per batch); model returns JSON `relevant_ids`; non-selected chunks are dropped.
@@ -126,10 +139,10 @@ To regenerate a summary from scratch (e.g. after changing the inference model), 
 
 ```bash
 # one sleuth
-.cursor/skills/sleuths/target/release/sleuth reset --project-root . --sleuth <id>
+sleuth --project-root . reset --sleuth <id>
 
 # all sleuths
-.cursor/skills/sleuths/target/release/sleuth reset --project-root . --all
+sleuth --project-root . reset --all
 ```
 
 Then run `refresh` as usual. Reset does not call the inference endpoint.
@@ -139,6 +152,7 @@ Then run `refresh` as usual. Reset does not call the inference endpoint.
 | Path | Purpose |
 |------|---------|
 | `.sleuths/config.yaml` | Inference endpoint URL/model, extra transcript slugs |
+| `.sleuths/secrets.env` | Optional LangSmith credentials (gitignored) |
 | `.sleuths/queries/<id>.yaml` | Lens definition (prompt) |
 | `.sleuths/<id>/checkpoint.yaml` | Processed transcript cursors |
 | `.sleuths/<id>/summary.md` | Agent-readable progressive summary |

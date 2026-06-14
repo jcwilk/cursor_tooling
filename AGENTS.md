@@ -68,13 +68,15 @@ Human-defined **sleuth** lenses summarize local Cursor agent transcripts into pr
 | **`.sleuths/<id>/checkpoint.yaml`** | Incremental processing cursor |
 
 | **`.sleuths/config.yaml`** | **Required** inference endpoint (`ollama.base_url`, `ollama.model`, optional `ollama.api`: `ollama` or `llama-cpp` / `openai-chat`) — human-created, gitignored |
+| **`.sleuths/secrets.env`** | Optional LangSmith tracing credentials — human-created, gitignored; see **`.cursor/skills/sleuths/secrets.example.env`** |
 
-- Before refresh, ensure **`.sleuths/config.yaml`** exists and points at your inference server (Ollama `/api/generate` or llama.cpp `/v1/chat/completions`). Sleuth **does not** start or install inference locally — it only calls the configured URL. Refresh runs **relevance filter → batched summarize → recursive reduce** on new transcript tail (see **`.cursor/skills/sleuths/SKILL.md`**).
+- Before refresh, ensure **`.sleuths/config.yaml`** exists and points at your inference server (Ollama `/api/generate` or llama.cpp `/v1/chat/completions`). Sleuth **does not** start or install inference locally — it only calls the configured URL. Refresh runs **relevance filter → batched summarize → recursive reduce** on new transcript tail via a LangGraph pipeline (see **`.cursor/skills/sleuths/SKILL.md`**).
+- **LangSmith tracing is opt-in.** When `.sleuths/secrets.env` supplies credentials, refresh may export run/step metadata (including LLM prompts derived from transcripts) to LangSmith cloud. Default remains fully local.
 - Before guessing about prior decisions, bugs, or migrations discussed in past agent sessions, **read relevant `.sleuths/*/summary.md`** when they exist.
 - **Refresh is human-only in v1** — do not run sleuth refresh unless the human explicitly asks (skill **`/sleuths`**).
 - **`.sleuths/` is gitignored** and may contain secrets from transcripts — **never commit** it.
 
-One-time local build: **`scripts/build-local-tools.sh`**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
+One-time local install: **`scripts/build-local-tools.sh`**. Requires **Python 3.11+**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
 
 ## Reference
 
