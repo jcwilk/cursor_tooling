@@ -46,7 +46,7 @@
 - [x] 7.2 Smoke test: `pip install -e`, create sleuth, refresh twice — second run reports nothing new; checkpoint advances correctly
 - [x] 7.3 Smoke test: reset clears summary/checkpoint; subsequent refresh rebuilds from scratch
 - [x] 7.4 Smoke test: refresh fails cleanly when inference endpoint unreachable (no checkpoint advance on failed segment)
-- [ ] 7.5 Smoke test (operator environment): with `.sleuths/secrets.env` filled, confirm a refresh run appears in LangSmith project dashboard
+- [x] 7.5 Smoke test (operator environment): with `.sleuths/secrets.env` filled, confirm a refresh run appears in LangSmith project dashboard
 
 ## 8. Archive (apply finish)
 
