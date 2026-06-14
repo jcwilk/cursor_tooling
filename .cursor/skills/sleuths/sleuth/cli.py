@@ -7,7 +7,7 @@ import click
 
 from sleuth.refresh import refresh_all, refresh_sleuth
 from sleuth.reset import reset_all, reset_sleuth
-from sleuth.tracing import configure_langsmith
+from sleuth.tracing import configure_langsmith, flush_tracing
 
 
 @click.group()
@@ -40,6 +40,8 @@ def refresh(ctx: click.Context, sleuth: str | None, refresh_all_flag: bool) -> N
             raise click.ClickException("specify --sleuth <id> or --all")
     except Exception as exc:
         raise click.ClickException(str(exc)) from exc
+    finally:
+        flush_tracing()
 
 
 @cli.command()
@@ -58,6 +60,8 @@ def reset(ctx: click.Context, sleuth: str | None, reset_all_flag: bool) -> None:
             raise click.ClickException("specify --sleuth <id> or --all")
     except Exception as exc:
         raise click.ClickException(str(exc)) from exc
+    finally:
+        flush_tracing()
 
 
 def main() -> None:
