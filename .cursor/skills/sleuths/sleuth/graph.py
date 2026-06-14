@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
-from langsmith import traceable
 
 from sleuth.chunk import IndexedChunk
 from sleuth.config import ProcessingConfig
@@ -32,7 +31,6 @@ class SegmentState(TypedDict):
 
 
 def build_segment_graph(client: InferenceClient) -> StateGraph:
-    @traceable(name="load_chunks")
     def load_chunks(state: SegmentState) -> dict:
         path = Path(state["segment_path"])
         chunks = stream_chunks(
@@ -43,7 +41,6 @@ def build_segment_graph(client: InferenceClient) -> StateGraph:
         )
         return {"chunks": chunks}
 
-    @traceable(name="relevance_pass")
     def relevance_pass(state: SegmentState) -> dict:
         relevant = run_relevance_pass(
             client,
@@ -54,7 +51,6 @@ def build_segment_graph(client: InferenceClient) -> StateGraph:
         )
         return {"relevant_chunks": relevant}
 
-    @traceable(name="summarize_pass")
     def summarize_pass(state: SegmentState) -> dict:
         pass_summaries = run_summarize_pass(
             client,
@@ -65,7 +61,6 @@ def build_segment_graph(client: InferenceClient) -> StateGraph:
         )
         return {"pass_summaries": pass_summaries}
 
-    @traceable(name="hierarchical_reduce")
     def hierarchical_reduce(state: SegmentState) -> dict:
         segment_summary = recursive_reduce(
             client,
