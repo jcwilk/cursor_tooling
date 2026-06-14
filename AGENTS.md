@@ -76,7 +76,7 @@ Human-defined **sleuth** lenses summarize local Cursor agent transcripts into pr
 - **Refresh is human-only in v1** — do not run sleuth refresh unless the human explicitly asks (skill **`/sleuths`**).
 - **`.sleuths/` is gitignored** and may contain secrets from transcripts — **never commit** it.
 
-One-time local install: **`scripts/build-local-tools.sh`** (or `python -m pip install -e .cursor/skills/sleuths`). Requires **Python 3.11+**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
+One-time local install: **`scripts/build-local-tools.sh`**. Requires **Python 3.11+**. Skill: **`.cursor/skills/sleuths/SKILL.md`**.
 
 ## Reference
 

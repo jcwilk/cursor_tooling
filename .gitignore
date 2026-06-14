@@ -1,6 +1,5 @@
 .env
 .sleuths/
 .venv/
-.venv-sleuth/
 __pycache__/
 *.egg-info/

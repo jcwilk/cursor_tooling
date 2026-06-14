@@ -21,9 +21,9 @@ Install the bundled Python CLI once:
 
 ```bash
 scripts/build-local-tools.sh
-# or directly:
-python -m pip install -e .cursor/skills/sleuths
 ```
+
+This installs into the repo `.venv` (gitignored) so no build metadata lands in the skill source tree. Re-run after pulling sleuth code changes.
 
 Entry point: `sleuth` (console script on PATH when your shell/venv includes the pip install target).
 

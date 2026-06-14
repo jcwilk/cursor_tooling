@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build local tools shipped under .cursor/skills/ (Python editable installs; Rust crates if any).
+# Build local tools shipped under .cursor/skills/ (Python installs into .venv; Rust crates if any).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -17,8 +17,9 @@ PIP="$VENV/bin/pip"
 for pyproject in "$SKILLS_DIR"/*/pyproject.toml; do
   [[ -f "$pyproject" ]] || continue
   dir="$(dirname "$pyproject")"
-  echo "==> pip install -e $dir"
-  "$PIP" install -e "$dir"
+  echo "==> pip install $dir"
+  "$PIP" install "$dir"
+  rm -rf "$dir/build" "$dir"/*.egg-info
   BUILT=$((BUILT + 1))
 done
 
