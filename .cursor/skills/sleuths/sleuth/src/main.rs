@@ -13,6 +13,7 @@ mod relevance;
 mod reset;
 mod slug;
 mod token;
+mod verbose;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -24,6 +25,10 @@ struct Cli {
     /// Project root (directory containing `.sleuths/`)
     #[arg(long, global = true, default_value = ".")]
     project_root: PathBuf,
+
+    /// Log per-segment and per-inference progress to stderr
+    #[arg(long, global = true)]
+    verbose: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -55,6 +60,7 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    verbose::set_verbose(cli.verbose);
     let project_root = cli.project_root.canonicalize()?;
 
     match cli.command {

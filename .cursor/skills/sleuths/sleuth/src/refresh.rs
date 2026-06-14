@@ -7,6 +7,7 @@ use crate::pipeline::{
     merge_into_summary_header, process_segment_pipeline, recursive_reduce, summary_body,
 };
 use crate::query::{list_sleuth_ids, load_query};
+use crate::verbose;
 use anyhow::Result;
 use std::path::Path;
 
@@ -72,7 +73,15 @@ fn refresh_sleuth_with_config(
     reset_inference_call_count();
     let mut new_segment_summaries: Vec<String> = Vec::new();
 
-    for work in pending {
+    for (segment_idx, work) in pending.iter().enumerate() {
+        verbose::log(format!(
+            "Sleuth '{sleuth_id}': segment {}/{} {} lines {}-{}",
+            segment_idx + 1,
+            pending.len(),
+            work.segment.relative_path,
+            work.start_line,
+            work.end_line
+        ));
         let session_tag = session_tag(&work.segment);
         let segment_summary = process_segment_pipeline(
             &client,
@@ -107,6 +116,12 @@ fn refresh_sleuth_with_config(
         );
         checkpoint.save(&ckpt_path)?;
         std::fs::write(&summary_path, &summary)?;
+        verbose::log(format!(
+            "Sleuth '{sleuth_id}': segment {}/{} checkpointed (inference calls so far: {})",
+            segment_idx + 1,
+            pending.len(),
+            inference_call_count()
+        ));
     }
 
     eprintln!(

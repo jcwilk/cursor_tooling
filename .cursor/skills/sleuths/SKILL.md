@@ -107,6 +107,8 @@ Re-run when new agent sessions have accumulated (human-invoked only in v1):
 .cursor/skills/sleuths/target/release/sleuth refresh --project-root . --all
 ```
 
+Pass **`--verbose`** (global) to log per-segment and per-inference progress on stderr. For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
+
 Refresh scans local transcripts (primary workspace slug + `git worktree list` + `extra_transcript_slugs`), processes only segments after the checkpoint, and calls the configured inference endpoint. **If the endpoint is unreachable, refresh fails and checkpoints do not advance.**
 
 ### Refresh pipeline (per segment)

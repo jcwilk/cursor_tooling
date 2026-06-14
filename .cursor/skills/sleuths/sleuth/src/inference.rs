@@ -1,8 +1,10 @@
 use crate::config::{InferenceApi, OllamaConfig};
+use crate::token::estimate_tokens;
+use crate::verbose;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 static INFERENCE_CALLS: AtomicU64 = AtomicU64::new(0);
 
@@ -64,11 +66,34 @@ impl InferenceClient {
     }
 
     pub fn generate(&self, prompt: &str) -> Result<String> {
-        INFERENCE_CALLS.fetch_add(1, Ordering::Relaxed);
-        match self.config.api {
+        let call = INFERENCE_CALLS.fetch_add(1, Ordering::Relaxed) + 1;
+        let prompt_tokens = estimate_tokens(prompt);
+        let api = match self.config.api {
+            InferenceApi::Ollama => "ollama",
+            InferenceApi::OpenAiChat => "openai-chat",
+        };
+        verbose::log(format!(
+            "[inference #{call}] start api={api} model={} prompt_tokens~{prompt_tokens}",
+            self.config.model
+        ));
+        let started = Instant::now();
+        let result = match self.config.api {
             InferenceApi::Ollama => self.generate_ollama(prompt),
             InferenceApi::OpenAiChat => self.generate_openai_chat(prompt),
+        };
+        let elapsed = started.elapsed();
+        match &result {
+            Ok(text) => verbose::log(format!(
+                "[inference #{call}] ok elapsed={:.2}s response_chars={}",
+                elapsed.as_secs_f64(),
+                text.len()
+            )),
+            Err(err) => verbose::log(format!(
+                "[inference #{call}] err elapsed={:.2}s {err:#}",
+                elapsed.as_secs_f64()
+            )),
         }
+        result
     }
 
     fn generate_ollama(&self, prompt: &str) -> Result<String> {
