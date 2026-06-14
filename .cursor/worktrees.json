@@ -1,12 +1,3 @@
 {
-  "setup-worktree-unix": [
-    "test -f \"$ROOT_WORKTREE_PATH/.env\" && cp \"$ROOT_WORKTREE_PATH/.env\" .env",
-    "test -d \"$ROOT_WORKTREE_PATH/.sleuths\" && cp -r \"$ROOT_WORKTREE_PATH/.sleuths\" .",
-    "test -d \"$ROOT_WORKTREE_PATH/.venv\" && cp -r \"$ROOT_WORKTREE_PATH/.venv\" ."
-  ],
-  "setup-worktree-windows": [
-    "if exist \"%ROOT_WORKTREE_PATH%\\.env\" copy \"%ROOT_WORKTREE_PATH%\\.env\" .env",
-    "if exist \"%ROOT_WORKTREE_PATH%\\.sleuths\" xcopy \"%ROOT_WORKTREE_PATH%\\.sleuths\" \".sleuths\\\" /E /I /H /Y",
-    "if exist \"%ROOT_WORKTREE_PATH%\\.venv\" xcopy \"%ROOT_WORKTREE_PATH%\\.venv\" \".venv\\\" /E /I /H /Y"
-  ]
+  "setup-worktree-unix": "setup-worktree-unix.sh"
 }
