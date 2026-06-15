@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import TypedDict
 
 from langgraph.graph import END, StateGraph
+from langsmith import traceable
 
 from sleuth.chunk import IndexedChunk
 from sleuth.config import ProcessingConfig
 from sleuth.inference import InferenceClient
 from sleuth.pipeline import (
-    recursive_reduce,
+    intra_segment_reduce,
     run_relevance_pass,
     run_summarize_pass,
     stream_chunks,
@@ -62,7 +63,7 @@ def build_segment_graph(client: InferenceClient) -> StateGraph:
         return {"pass_summaries": pass_summaries}
 
     def hierarchical_reduce(state: SegmentState) -> dict:
-        segment_summary = recursive_reduce(
+        segment_summary = intra_segment_reduce(
             client,
             state["query"],
             state["pass_summaries"],
@@ -85,6 +86,7 @@ def build_segment_graph(client: InferenceClient) -> StateGraph:
     return graph
 
 
+@traceable(name="sleuth process transcript segment", run_type="chain")
 def run_segment_pipeline(
     client: InferenceClient,
     query: SleuthQuery,

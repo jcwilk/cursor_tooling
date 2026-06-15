@@ -2,10 +2,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from langsmith import traceable
+
 from sleuth.chunk import IndexedChunk
 from sleuth.config import ProcessingConfig
 from sleuth.context_budget import group_by_budget, group_chunks_by_budget
-from sleuth.inference import InferenceClient
+from sleuth.inference import (
+    STAGE_CROSS_MERGE,
+    STAGE_INTRA_MERGE,
+    STAGE_RELEVANCE,
+    STAGE_SUMMARIZE,
+    InferenceClient,
+    set_inference_stage,
+)
 from sleuth.jsonl_extract import extract_lines
 from sleuth.prompts import (
     content_budget,
@@ -45,6 +54,7 @@ def stream_chunks(
     return chunks
 
 
+@traceable(name="sleuth filter chunks for relevance", run_type="chain")
 def run_relevance_pass(
     client: InferenceClient,
     query: SleuthQuery,
@@ -61,6 +71,7 @@ def run_relevance_pass(
     for group in groups:
         indexed = [(c.index, c.text) for c in group]
         prompt = relevance_prompt(query, indexed, session_tag)
+        set_inference_stage(STAGE_RELEVANCE)
         response = client.generate(prompt)
         max_idx = group[-1].index if group else 0
         ids = parse_relevant_ids(response, max_idx)
@@ -70,6 +81,7 @@ def run_relevance_pass(
     return relevant
 
 
+@traceable(name="sleuth summarize relevant chunks", run_type="chain")
 def run_summarize_pass(
     client: InferenceClient,
     query: SleuthQuery,
@@ -93,6 +105,7 @@ def run_summarize_pass(
         prompt = summarize_prompt(
             query, indexed, session_tag, processing.pass_summary_cap_tokens
         )
+        set_inference_stage(STAGE_SUMMARIZE)
         summary = client.generate(prompt)
         if summary.strip():
             pass_summaries.append(summary)
@@ -106,6 +119,8 @@ def recursive_reduce(
     processing: ProcessingConfig,
     session_tag: str,
     seed_aggregate: str | None = None,
+    *,
+    merge_stage: str = STAGE_INTRA_MERGE,
 ) -> str:
     if not summaries:
         return ""
@@ -129,6 +144,7 @@ def recursive_reduce(
         next_round: list[str] = []
         for group in groups:
             prompt = merge_prompt(query, group, session_tag, target, seed_aggregate)
+            set_inference_stage(merge_stage)
             merged = client.generate(prompt)
             if merged.strip():
                 next_round.append(merged)
@@ -136,8 +152,49 @@ def recursive_reduce(
         if not next_round:
             break
         summaries = next_round
+        seed_aggregate = None
 
     return summaries[0] if summaries else ""
+
+
+@traceable(name="sleuth merge pass summaries within segment", run_type="chain")
+def intra_segment_reduce(
+    client: InferenceClient,
+    query: SleuthQuery,
+    summaries: list[str],
+    processing: ProcessingConfig,
+    session_tag: str,
+    seed_aggregate: str | None = None,
+) -> str:
+    return recursive_reduce(
+        client,
+        query,
+        summaries,
+        processing,
+        session_tag,
+        seed_aggregate,
+        merge_stage=STAGE_INTRA_MERGE,
+    )
+
+
+@traceable(name="sleuth merge segment summaries into summary", run_type="chain")
+def cross_segment_reduce(
+    client: InferenceClient,
+    query: SleuthQuery,
+    summaries: list[str],
+    processing: ProcessingConfig,
+    session_tag: str,
+    seed_aggregate: str | None = None,
+) -> str:
+    return recursive_reduce(
+        client,
+        query,
+        summaries,
+        processing,
+        session_tag,
+        seed_aggregate,
+        merge_stage=STAGE_CROSS_MERGE,
+    )
 
 
 def summary_body(summary: str) -> str | None:

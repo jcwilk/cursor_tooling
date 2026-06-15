@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+from contextvars import ContextVar
 from dataclasses import dataclass
 
 import requests
@@ -9,8 +10,20 @@ from langsmith import traceable
 
 from sleuth.config import InferenceApi, OllamaConfig
 
+STAGE_RELEVANCE = "relevance"
+STAGE_SUMMARIZE = "summarize"
+STAGE_INTRA_MERGE = "intra_merge"
+STAGE_CROSS_MERGE = "cross_merge"
+
 _inference_calls = 0
+_stage_counts: dict[str, int] = {
+    STAGE_RELEVANCE: 0,
+    STAGE_SUMMARIZE: 0,
+    STAGE_INTRA_MERGE: 0,
+    STAGE_CROSS_MERGE: 0,
+}
 _call_lock = threading.Lock()
+_inference_stage: ContextVar[str | None] = ContextVar("inference_stage", default=None)
 
 
 def inference_call_count() -> int:
@@ -18,19 +31,33 @@ def inference_call_count() -> int:
         return _inference_calls
 
 
+def inference_stage_counts() -> dict[str, int]:
+    with _call_lock:
+        return dict(_stage_counts)
+
+
 def reset_inference_call_count() -> None:
     global _inference_calls
     with _call_lock:
         _inference_calls = 0
+        for key in _stage_counts:
+            _stage_counts[key] = 0
+
+
+def set_inference_stage(stage: str | None) -> None:
+    _inference_stage.set(stage)
 
 
 def _increment_calls() -> None:
     global _inference_calls
     with _call_lock:
         _inference_calls += 1
+        stage = _inference_stage.get()
+        if stage in _stage_counts:
+            _stage_counts[stage] += 1
 
 
-@traceable(name="sleuth_inference_generate", run_type="llm")
+@traceable(name="sleuth inference generate call", run_type="llm")
 def _generate_traced(config: OllamaConfig, prompt: str) -> str:
     _increment_calls()
     if config.api == InferenceApi.OLLAMA:

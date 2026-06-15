@@ -2,11 +2,18 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
+import yaml
 
 from sleuth.checkpoint import Checkpoint, SegmentKey, checkpoint_path
+from sleuth.config import InferenceApi, OllamaConfig, ProcessingConfig, SleuthsConfig, TranscriptsConfig
 from sleuth.context_budget import group_by_budget, group_chunks_by_budget
+from sleuth.discover import TranscriptSegment
+from sleuth.pipeline import merge_into_summary_header
+from sleuth.query import SleuthQuery
+from sleuth.refresh import PendingWork, _refresh_sleuth_with_config
 from sleuth.relevance import parse_relevant_ids
 from sleuth.slug import slug_from_path
 from sleuth.token import estimate_tokens
@@ -100,3 +107,222 @@ class TestCheckpoint:
             ckpt.save(path)
             loaded2 = Checkpoint.load(path)
             assert loaded2.line_count_map()[key] == 99
+
+
+def _make_query() -> SleuthQuery:
+    return SleuthQuery(
+        id="test-sleuth",
+        description="Test sleuth",
+        prompt="Extract test facts.",
+    )
+
+
+def _make_config() -> SleuthsConfig:
+    return SleuthsConfig(
+        ollama=OllamaConfig(
+            base_url="http://127.0.0.1:11434",
+            model="test-model",
+            api=InferenceApi.OLLAMA,
+        ),
+        transcripts=TranscriptsConfig(extra_transcript_slugs=[]),
+        processing=ProcessingConfig(
+            context_budget_tokens=16384,
+            response_headroom_tokens=1000,
+            pass_summary_cap_tokens=4000,
+            final_summary_target_tokens=4000,
+            chunk_lines=1,
+            max_chunks_per_batch=20,
+        ),
+    )
+
+
+def _make_segment(seg_id: str, path: Path) -> TranscriptSegment:
+    return TranscriptSegment(
+        transcript_id=seg_id,
+        relative_path=f"{seg_id}.jsonl",
+        absolute_path=path,
+        mtime=1.0,
+    )
+
+
+def _setup_project(tmp: Path) -> tuple[Path, SleuthQuery]:
+    query = _make_query()
+    sleuths = tmp / ".sleuths"
+    (sleuths / "queries").mkdir(parents=True)
+    query_path = sleuths / "queries" / "test-sleuth.yaml"
+    query_path.write_text(
+        yaml.dump(
+            {
+                "id": query.id,
+                "description": query.description,
+                "prompt": query.prompt,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (sleuths / "config.yaml").write_text(
+        yaml.dump(
+            {
+                "ollama": {
+                    "base_url": "http://127.0.0.1:11434",
+                    "model": "test-model",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    return tmp, query
+
+
+class TestRefreshOrchestration:
+    def test_cross_segment_merge_runs_once_after_n_segments(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            seg_paths = []
+            for i in range(3):
+                p = root / f"seg{i}.jsonl"
+                p.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+                seg_paths.append(p)
+
+            segments = [_make_segment(f"seg{i}", seg_paths[i]) for i in range(3)]
+            pending = [
+                PendingWork(segment=segments[i], start_line=1, end_line=1)
+                for i in range(3)
+            ]
+
+            cross_merge_calls: list[tuple[list[str], str | None]] = []
+
+            def fake_segment_pipeline(*_args, **_kwargs) -> str:
+                return "segment summary"
+
+            def fake_cross_segment_reduce(
+                _client, _query, summaries, _processing, _session_tag, seed
+            ) -> str:
+                cross_merge_calls.append((list(summaries), seed))
+                return "final body"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=segments),
+                patch("sleuth.refresh._pending_work", side_effect=pending),
+                patch(
+                    "sleuth.refresh.run_segment_pipeline",
+                    side_effect=fake_segment_pipeline,
+                ),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    side_effect=fake_cross_segment_reduce,
+                ),
+            ):
+                _refresh_sleuth_with_config(root, "test-sleuth", _make_config())
+
+            assert len(cross_merge_calls) == 1
+            summaries, seed = cross_merge_calls[0]
+            assert summaries == ["segment summary", "segment summary", "segment summary"]
+            assert seed is None
+
+            summary_text = (sleuth_dir / "summary.md").read_text(encoding="utf-8")
+            assert "final body" in summary_text
+
+    def test_incremental_refresh_uses_prior_as_seed_not_input(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            prior = "prior knowledge"
+            summary_path = sleuth_dir / "summary.md"
+            summary_path.write_text(
+                merge_into_summary_header(query, prior), encoding="utf-8"
+            )
+
+            seg_path = root / "seg0.jsonl"
+            seg_path.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+            segment = _make_segment("seg0", seg_path)
+            pending = [PendingWork(segment=segment, start_line=1, end_line=1)]
+
+            cross_merge_calls: list[tuple[list[str], str | None]] = []
+
+            def fake_cross_segment_reduce(
+                _client, _query, summaries, _processing, _session_tag, seed
+            ) -> str:
+                cross_merge_calls.append((list(summaries), seed))
+                return "merged body"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=[segment]),
+                patch("sleuth.refresh._pending_work", side_effect=pending),
+                patch(
+                    "sleuth.refresh.run_segment_pipeline",
+                    return_value="new segment summary",
+                ),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    side_effect=fake_cross_segment_reduce,
+                ),
+            ):
+                _refresh_sleuth_with_config(root, "test-sleuth", _make_config())
+
+            assert len(cross_merge_calls) == 1
+            summaries, seed = cross_merge_calls[0]
+            assert summaries == ["new segment summary"]
+            assert seed == prior
+            assert prior not in summaries
+
+    def test_mid_batch_failure_leaves_summary_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            original_summary = merge_into_summary_header(query, "stable body")
+            summary_path = sleuth_dir / "summary.md"
+            summary_path.write_text(original_summary, encoding="utf-8")
+
+            seg_paths = []
+            for i in range(2):
+                p = root / f"seg{i}.jsonl"
+                p.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+                seg_paths.append(p)
+
+            segments = [_make_segment(f"seg{i}", seg_paths[i]) for i in range(2)]
+            pending = [
+                PendingWork(segment=segments[i], start_line=1, end_line=1)
+                for i in range(2)
+            ]
+
+            call_count = 0
+
+            def flaky_segment_pipeline(*_args, **_kwargs) -> str:
+                nonlocal call_count
+                call_count += 1
+                if call_count == 2:
+                    raise RuntimeError("simulated failure")
+                return "segment summary"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=segments),
+                patch("sleuth.refresh._pending_work", side_effect=pending),
+                patch(
+                    "sleuth.refresh.run_segment_pipeline",
+                    side_effect=flaky_segment_pipeline,
+                ),
+                pytest.raises(RuntimeError, match="simulated failure"),
+            ):
+                _refresh_sleuth_with_config(root, "test-sleuth", _make_config())
+
+            assert summary_path.read_text(encoding="utf-8") == original_summary
+
+            ckpt = Checkpoint.load(checkpoint_path(sleuth_dir))
+            key = SegmentKey(transcript_id="seg0", relative_path="seg0.jsonl")
+            assert ckpt.line_count_map()[key] == 1
+            key2 = SegmentKey(transcript_id="seg1", relative_path="seg1.jsonl")
+            assert key2 not in ckpt.line_count_map()

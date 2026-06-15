@@ -118,20 +118,25 @@ sleuth --project-root . refresh --sleuth <id>
 sleuth --project-root . refresh --all
 ```
 
-Progress is logged to stderr (resolved transcript slugs, segment count, context-budget notices, inference call total). For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
+Progress is logged to stderr (resolved transcript slugs, segment count, context-budget notices, per-stage inference call counts). For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
 
 Refresh scans local transcripts (primary workspace slug + `git worktree list` + `extra_transcript_slugs`), processes only segments after the checkpoint, and calls the configured inference endpoint. **If the endpoint is unreachable, refresh fails and checkpoints do not advance.**
 
-### Refresh pipeline (per segment)
+### Refresh pipeline
 
-Orchestration uses a LangGraph `StateGraph` per segment:
+**Batch orchestration** (one refresh invocation):
+
+1. **Collect** — for each pending transcript segment, run the segment pipeline below and append non-empty segment summaries to a batch list. Advance the checkpoint after each segment; **do not** rewrite `summary.md` during collect.
+2. **Finalize** — once all pending segments are collected, run cross-segment hierarchical reduce **once** to merge batch segment summaries into the summary body. On incremental refresh, the existing summary body is the merge seed (not duplicated in the merge inputs).
+
+**Per-segment pipeline** (LangGraph `StateGraph`):
 
 1. **Chunk** — stream small indexed chunks from the checkpoint tail (default: one transcript line per chunk).
 2. **Relevance** — batch chunks (token budget + max ~20 per batch); model returns JSON `relevant_ids`; non-selected chunks are dropped.
 3. **Summarize** — batch filtered chunks; one pass summary per group.
 4. **Reduce** — recursively merge pass summaries until one bounded result remains (skipped when only one pass summary).
 
-On incremental refresh, an existing `summary.md` is used as a **merge seed** only in the final recursive reduce across new segment output — not during per-chunk steps.
+When LangSmith tracing is enabled (`.sleuths/secrets.env`), refresh exports **one root trace per refresh operation** with named child spans for segment processing, each pipeline phase, and individual inference calls.
 
 ## Reset (full rebuild)
 
