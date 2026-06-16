@@ -30,6 +30,11 @@ class ProcessingConfig:
     final_summary_target_tokens: int = 4000
     chunk_lines: int = 1
     max_chunks_per_batch: int = 20
+    relevance_min_content_tokens: int = 2000
+    relevance_max_content_tokens: int = 14000
+    summarize_target_content_tokens: int = 8000
+    merge_target_content_tokens: int = 8000
+    merge_max_items_per_batch: int = 2
 
 
 @dataclass
@@ -124,6 +129,36 @@ def load_config(project_root: Path) -> SleuthsConfig:
             chunk_lines=int(processing_raw.get("chunk_lines", ProcessingConfig.chunk_lines)),
             max_chunks_per_batch=int(
                 processing_raw.get("max_chunks_per_batch", ProcessingConfig.max_chunks_per_batch)
+            ),
+            relevance_min_content_tokens=int(
+                processing_raw.get(
+                    "relevance_min_content_tokens",
+                    ProcessingConfig.relevance_min_content_tokens,
+                )
+            ),
+            relevance_max_content_tokens=int(
+                processing_raw.get(
+                    "relevance_max_content_tokens",
+                    ProcessingConfig.relevance_max_content_tokens,
+                )
+            ),
+            summarize_target_content_tokens=int(
+                processing_raw.get(
+                    "summarize_target_content_tokens",
+                    ProcessingConfig.summarize_target_content_tokens,
+                )
+            ),
+            merge_target_content_tokens=int(
+                processing_raw.get(
+                    "merge_target_content_tokens",
+                    ProcessingConfig.merge_target_content_tokens,
+                )
+            ),
+            merge_max_items_per_batch=int(
+                processing_raw.get(
+                    "merge_max_items_per_batch",
+                    ProcessingConfig.merge_max_items_per_batch,
+                )
             ),
         ),
     )

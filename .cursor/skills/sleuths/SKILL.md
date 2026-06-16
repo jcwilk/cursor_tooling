@@ -42,7 +42,12 @@ processing:                    # optional — defaults shown
   pass_summary_cap_tokens: 4000
   final_summary_target_tokens: 4000
   chunk_lines: 1               # lines merged per indexed chunk (default 1)
-  max_chunks_per_batch: 20     # max chunks per relevance/summarize/merge group
+  max_chunks_per_batch: 20     # max chunks per relevance/summarize group
+  relevance_min_content_tokens: 2000   # relevance batch growth floor (content only)
+  relevance_max_content_tokens: 14000  # relevance batch hard ceiling (content only)
+  summarize_target_content_tokens: 8000  # summarize batch content target
+  merge_target_content_tokens: 8000      # intra/cross-segment merge content target
+  merge_max_items_per_batch: 2           # max summaries combined per merge group
 ```
 
 **`api`** selects the HTTP protocol (defaults to `ollama` when omitted):
@@ -132,9 +137,9 @@ Refresh scans local transcripts (primary workspace slug + `git worktree list` + 
 **Per-segment pipeline** (LangGraph `StateGraph`):
 
 1. **Chunk** — stream small indexed chunks from the checkpoint tail (default: one transcript line per chunk).
-2. **Relevance** — batch chunks (token budget + max ~20 per batch); model returns JSON `relevant_ids`; non-selected chunks are dropped.
-3. **Summarize** — batch filtered chunks; one pass summary per group.
-4. **Reduce** — recursively merge pass summaries until one bounded result remains (skipped when only one pass summary).
+2. **Relevance** — batch chunks using minimum-target growth (~2000 content tokens by default) up to a maximum ceiling (~14000); model returns JSON `relevant_ids`; non-selected chunks are dropped.
+3. **Summarize** — batch filtered chunks toward a summarize-stage target (~8000 content tokens); one pass summary per group.
+4. **Reduce** — recursively merge pass summaries in pairs (default max 2 per merge group) toward a merge-stage target (~8000 content tokens) until one bounded result remains (skipped when only one pass summary).
 
 When LangSmith tracing is enabled (`.sleuths/secrets.env`), refresh exports **one root trace per refresh operation** with named child spans for segment processing, each pipeline phase, and individual inference calls.
 

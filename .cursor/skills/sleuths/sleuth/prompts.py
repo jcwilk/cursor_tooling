@@ -122,3 +122,15 @@ def content_budget(processing: ProcessingConfig, prompt_overhead: int) -> int:
         - processing.response_headroom_tokens
         - prompt_overhead,
     )
+
+
+def stage_content_budget(
+    target_content_tokens: int,
+    processing: ProcessingConfig,
+    prompt_overhead: int,
+) -> int:
+    stage_budget = max(
+        0,
+        target_content_tokens - processing.response_headroom_tokens - prompt_overhead,
+    )
+    return min(stage_budget, content_budget(processing, prompt_overhead))

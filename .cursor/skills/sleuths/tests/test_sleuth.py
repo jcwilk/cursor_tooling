@@ -9,9 +9,13 @@ import yaml
 
 from sleuth.checkpoint import Checkpoint, SegmentKey, checkpoint_path
 from sleuth.config import InferenceApi, OllamaConfig, ProcessingConfig, SleuthsConfig, TranscriptsConfig
-from sleuth.context_budget import group_by_budget, group_chunks_by_budget
+from sleuth.context_budget import (
+    group_by_budget,
+    group_chunks_by_budget,
+    group_chunks_by_min_max_budget,
+)
 from sleuth.discover import TranscriptSegment
-from sleuth.pipeline import merge_into_summary_header
+from sleuth.pipeline import merge_into_summary_header, run_relevance_pass
 from sleuth.query import SleuthQuery
 from sleuth.refresh import PendingWork, _refresh_sleuth_with_config
 from sleuth.relevance import parse_relevant_ids
@@ -89,6 +93,121 @@ class TestContextBudget:
         assert len(groups[0]) == 2
         assert len(groups[1]) == 2
         assert len(groups[2]) == 1
+
+
+class TestMinMaxBudget:
+    def _chunk(self, index: int, chars: int):
+        from sleuth.chunk import IndexedChunk
+
+        return IndexedChunk(index=index, text="x" * chars)
+
+    def _group_tokens(self, group: list) -> int:
+        return sum(estimate_tokens(c.text) for c in group)
+
+    def test_grows_until_minimum_target_met(self):
+        # 500 est. tokens each; min=1000, max=5000
+        chunks = [self._chunk(i, 2000) for i in range(5)]
+        groups = group_chunks_by_min_max_budget(chunks, min_content=1000, max_content=5000, max_items=20)
+        assert len(groups) >= 1
+        assert self._group_tokens(groups[0]) >= 1000
+        assert self._group_tokens(groups[0]) <= 5000
+
+    def test_finalizes_before_exceeding_maximum(self):
+        chunks = [self._chunk(i, 2000) for i in range(4)]  # 500 tokens each
+        groups = group_chunks_by_min_max_budget(chunks, min_content=1000, max_content=1500, max_items=20)
+        assert len(groups) >= 2
+        for group in groups[:-1]:
+            tokens = self._group_tokens(group)
+            assert tokens >= 1000
+            assert tokens <= 1500
+
+    def test_short_tail_below_minimum_still_processes(self):
+        chunks = [self._chunk(0, 400)]  # 100 tokens
+        groups = group_chunks_by_min_max_budget(chunks, min_content=1000, max_content=5000, max_items=20)
+        assert len(groups) == 1
+        assert len(groups[0]) == 1
+
+    def test_oversized_leading_chunk_truncation(self):
+        big = self._chunk(0, 40000)  # 10000 tokens
+        groups = group_chunks_by_min_max_budget([big], min_content=1000, max_content=2000, max_items=20)
+        assert len(groups) >= 2
+        assert self._group_tokens(groups[0]) <= 2000
+        joined = "".join(c.text for group in groups for c in group)
+        assert len(joined) == len(big.text)
+
+
+class TestRelevanceBatching:
+    def _chunk(self, index: int, chars: int):
+        from sleuth.chunk import IndexedChunk
+
+        return IndexedChunk(index=index, text="x" * chars)
+
+    def test_relevance_batches_meet_min_target(self):
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            relevance_min_content_tokens=1000,
+            relevance_max_content_tokens=5000,
+            max_chunks_per_batch=20,
+        )
+        chunks = [self._chunk(i, 2000) for i in range(8)]  # 500 tokens each
+
+        relevance_calls: list[list] = []
+
+        original_group = group_chunks_by_min_max_budget
+
+        def capture_group(*args, **kwargs):
+            groups = original_group(*args, **kwargs)
+            relevance_calls.extend(groups)
+            return groups
+
+        client = Mock()
+        client.generate.return_value = '{"relevant_ids": []}'
+
+        with patch(
+            "sleuth.pipeline.group_chunks_by_min_max_budget",
+            side_effect=capture_group,
+        ):
+            run_relevance_pass(client, query, chunks, processing, "sess")
+
+        assert relevance_calls
+        for group in relevance_calls[:-1]:
+            tokens = sum(estimate_tokens(c.text) for c in group)
+            assert tokens >= 1000
+            assert tokens <= 5000
+
+
+class TestMergeBatching:
+    def test_merge_groups_at_most_two_items(self):
+        from unittest.mock import Mock
+
+        from sleuth.pipeline import recursive_reduce
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            merge_target_content_tokens=8000,
+            merge_max_items_per_batch=2,
+            final_summary_target_tokens=100,
+        )
+        summaries = [f"summary {i}" for i in range(5)]
+
+        merge_group_sizes: list[int] = []
+        original_group = group_by_budget
+
+        def capture_group(items, budget, max_items):
+            groups = original_group(items, budget, max_items)
+            merge_group_sizes.extend(len(g) for g in groups)
+            return groups
+
+        client = Mock()
+        client.generate.return_value = "merged"
+
+        with patch("sleuth.pipeline.group_by_budget", side_effect=capture_group):
+            recursive_reduce(client, query, summaries, processing, "sess")
+
+        assert merge_group_sizes
+        assert all(size <= 2 for size in merge_group_sizes)
 
 
 class TestCheckpoint:

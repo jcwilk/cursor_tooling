@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from langsmith import traceable
 
 from sleuth.chunk import IndexedChunk
 from sleuth.config import ProcessingConfig
-from sleuth.context_budget import group_by_budget, group_chunks_by_budget
+from sleuth.context_budget import (
+    group_by_budget,
+    group_chunks_by_budget,
+    group_chunks_by_min_max_budget,
+)
 from sleuth.inference import (
     STAGE_CROSS_MERGE,
     STAGE_INTRA_MERGE,
@@ -22,6 +27,7 @@ from sleuth.prompts import (
     merge_prompt_overhead,
     relevance_prompt,
     relevance_prompt_overhead,
+    stage_content_budget,
     summarize_prompt,
     summarize_prompt_overhead,
 )
@@ -63,12 +69,23 @@ def run_relevance_pass(
     session_tag: str,
 ) -> list[IndexedChunk]:
     overhead = relevance_prompt_overhead(query, session_tag)
-    budget = content_budget(processing, overhead)
+    min_content = processing.relevance_min_content_tokens
+    max_content = min(
+        processing.relevance_max_content_tokens,
+        content_budget(processing, overhead),
+    )
     max_items = processing.max_chunks_per_batch
-    groups = group_chunks_by_budget(chunks, budget, max_items)
+    groups = group_chunks_by_min_max_budget(chunks, min_content, max_content, max_items)
 
     relevant: list[IndexedChunk] = []
     for group in groups:
+        group_tokens = sum(estimate_tokens(c.text) for c in group)
+        if group_tokens < min_content:
+            print(
+                f"relevance: batch below minimum target "
+                f"({group_tokens} < {min_content} est. content tokens) — segment tail",
+                file=sys.stderr,
+            )
         indexed = [(c.index, c.text) for c in group]
         prompt = relevance_prompt(query, indexed, session_tag)
         set_inference_stage(STAGE_RELEVANCE)
@@ -95,7 +112,9 @@ def run_summarize_pass(
     overhead = summarize_prompt_overhead(
         query, session_tag, processing.pass_summary_cap_tokens
     )
-    budget = content_budget(processing, overhead)
+    budget = stage_content_budget(
+        processing.summarize_target_content_tokens, processing, overhead
+    )
     max_items = processing.max_chunks_per_batch
     groups = group_chunks_by_budget(relevant, budget, max_items)
 
@@ -132,13 +151,15 @@ def recursive_reduce(
         return summaries[0]
 
     target = processing.final_summary_target_tokens
-    max_items = processing.max_chunks_per_batch
+    max_items = processing.merge_max_items_per_batch
 
     while len(summaries) > 1 or (
         len(summaries) == 1 and estimate_tokens(summaries[0]) > target
     ):
         overhead = merge_prompt_overhead(query, session_tag, target, seed_aggregate is not None)
-        budget = content_budget(processing, overhead)
+        budget = stage_content_budget(
+            processing.merge_target_content_tokens, processing, overhead
+        )
         groups = group_by_budget(summaries, budget, max_items)
 
         next_round: list[str] = []
