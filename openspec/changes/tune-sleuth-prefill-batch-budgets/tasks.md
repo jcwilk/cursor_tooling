@@ -22,7 +22,7 @@
 - [x] 4.1 Unit test: relevance pass forms batches meeting min target when enough chunks exist (mocked inference)
 - [x] 4.2 Unit test: merge groups contain at most configured max items (default 2)
 - [x] 4.3 Regression: full sleuth test suite passes
-- [ ] 4.4 Rebuild via `scripts/build-local-tools.sh` and smoke `sleuth refresh` on smoke-test sleuth; compare inference call counts and wall time vs prior baseline (note in apply handoff)
+- [x] 4.4 Rebuild via `scripts/build-local-tools.sh` and smoke `sleuth refresh` on smoke-test sleuth; compare inference call counts and wall time vs prior baseline (note in apply handoff)
 
 ## Explicitly deferred
 
