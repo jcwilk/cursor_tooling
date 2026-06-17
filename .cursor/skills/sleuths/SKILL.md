@@ -39,8 +39,8 @@ transcripts:
 processing:                    # optional — defaults shown
   context_budget_tokens: 16384
   response_headroom_tokens: 1000
-  pass_summary_cap_tokens: 4000
-  final_summary_target_tokens: 4000
+  pass_summary_cap_tokens: 2000
+  final_summary_target_tokens: 2000
   chunk_lines: 1               # lines merged per indexed chunk (default 1)
   max_chunks_per_batch: 20     # max chunks per relevance/summarize group
   relevance_min_content_tokens: 2000   # relevance batch growth floor (content only)

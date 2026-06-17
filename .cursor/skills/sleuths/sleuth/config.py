@@ -26,8 +26,8 @@ _API_ALIASES = {
 class ProcessingConfig:
     context_budget_tokens: int = 16384
     response_headroom_tokens: int = 1000
-    pass_summary_cap_tokens: int = 4000
-    final_summary_target_tokens: int = 4000
+    pass_summary_cap_tokens: int = 2000
+    final_summary_target_tokens: int = 2000
     chunk_lines: int = 1
     max_chunks_per_batch: int = 20
     relevance_min_content_tokens: int = 2000
