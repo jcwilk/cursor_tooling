@@ -27,15 +27,37 @@ def cli(ctx: click.Context, project_root: Path) -> None:
 @cli.command()
 @click.option("--sleuth", default=None, help="Sleuth id (matches .sleuths/queries/<id>.yaml)")
 @click.option("--all", "refresh_all_flag", is_flag=True, help="Refresh every sleuth")
+@click.option(
+    "--session",
+    default=None,
+    help="Limit refresh to one agent session (transcript id); requires --sleuth",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="Run refresh without writing checkpoint or summary artifacts",
+)
 @click.pass_context
-def refresh(ctx: click.Context, sleuth: str | None, refresh_all_flag: bool) -> None:
+def refresh(
+    ctx: click.Context,
+    sleuth: str | None,
+    refresh_all_flag: bool,
+    session: str | None,
+    dry_run: bool,
+) -> None:
     """Incrementally refresh sleuth summaries."""
     root: Path = ctx.obj["project_root"]
     try:
+        if session and refresh_all_flag:
+            raise click.ClickException("--session is incompatible with --all")
+        if session and not sleuth:
+            raise click.ClickException("--session requires --sleuth")
+        if dry_run and refresh_all_flag:
+            raise click.ClickException("--dry-run is incompatible with --all")
         if refresh_all_flag:
             refresh_all(root)
         elif sleuth:
-            refresh_sleuth(root, sleuth)
+            refresh_sleuth(root, sleuth, session_id=session, dry_run=dry_run)
         else:
             raise click.ClickException("specify --sleuth <id> or --all")
     except Exception as exc:

@@ -123,6 +123,22 @@ sleuth --project-root . refresh --sleuth <id>
 sleuth --project-root . refresh --all
 ```
 
+**Session-scoped refresh** reprocesses one agent conversation from line 1 (parent transcript + Task subagent files). The session id is the folder name under `agent-transcripts/` (the transcript UUID). Requires `--sleuth`; incompatible with `--all`.
+
+```bash
+sleuth --project-root . refresh --sleuth <id> --session <transcript_id>
+```
+
+**Dry-run** runs the full collect → finalize pipeline (including inference) but writes nothing to checkpoint or summary artifacts. Prints the resulting summary document to stdout; progress and inference counts stay on stderr. Only available on `refresh`.
+
+```bash
+# dry-run full pending batch
+sleuth --project-root . refresh --sleuth <id> --dry-run
+
+# dry-run one session (always reprocesses that session)
+sleuth --project-root . refresh --sleuth <id> --session <transcript_id> --dry-run
+```
+
 Progress is logged to stderr (resolved transcript slugs, segment count, context-budget notices, per-stage inference call counts). For a full reset+refresh probe with alienware log capture, see **`scripts/debug-sleuth-refresh-probe.sh`** (uses pi-run fleet env; writes artifacts under `home_ai/.pi-run/scratch/`).
 
 Refresh scans local transcripts (primary workspace slug + `git worktree list` + `extra_transcript_slugs`), processes only segments after the checkpoint, and calls the configured inference endpoint. **If the endpoint is unreachable, refresh fails and checkpoints do not advance.**

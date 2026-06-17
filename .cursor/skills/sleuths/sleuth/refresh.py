@@ -26,10 +26,22 @@ from sleuth.query import SleuthQuery, list_sleuth_ids, load_query
 from sleuth.tracing import configure_langsmith, warn_tracing_failure
 
 
-def refresh_sleuth(project_root: Path, sleuth_id: str) -> None:
+def refresh_sleuth(
+    project_root: Path,
+    sleuth_id: str,
+    *,
+    session_id: str | None = None,
+    dry_run: bool = False,
+) -> None:
     configure_langsmith(project_root)
     config = load_config(project_root)
-    _refresh_sleuth_with_config(project_root, sleuth_id, config)
+    _refresh_sleuth_with_config(
+        project_root,
+        sleuth_id,
+        config,
+        session_id=session_id,
+        dry_run=dry_run,
+    )
 
 
 def refresh_all(project_root: Path) -> None:
@@ -47,13 +59,24 @@ def _refresh_sleuth_with_config(
     project_root: Path,
     sleuth_id: str,
     config: SleuthsConfig,
+    *,
+    session_id: str | None = None,
+    dry_run: bool = False,
 ) -> None:
     query = load_query(project_root, sleuth_id)
     slugs = resolve_slugs(project_root, config)
     segments = discover_segments(slugs)
 
+    if session_id is not None:
+        segments = [seg for seg in segments if seg.transcript_id == session_id]
+        if not segments:
+            raise RuntimeError(
+                f"no transcript segments found for session '{session_id}'"
+            )
+
     sleuth_dir = sleuths_dir(project_root) / sleuth_id
-    sleuth_dir.mkdir(parents=True, exist_ok=True)
+    if not dry_run:
+        sleuth_dir.mkdir(parents=True, exist_ok=True)
 
     ckpt_path = checkpoint_path(sleuth_dir)
     checkpoint = Checkpoint.load(ckpt_path)
@@ -69,11 +92,14 @@ def _refresh_sleuth_with_config(
     processing = config.processing
     prior_body = summary_body(summary)
 
-    pending = [
-        work
-        for seg in segments
-        if (work := _pending_work(seg, processed)) is not None
-    ]
+    pending: list[PendingWork] = []
+    for seg in segments:
+        if session_id is not None:
+            work = _session_reprocess_work(seg)
+        else:
+            work = _pending_work(seg, processed)
+        if work is not None:
+            pending.append(work)
 
     if not pending:
         print(f"Sleuth '{sleuth_id}': nothing new to process", file=sys.stderr)
@@ -110,14 +136,15 @@ def _refresh_sleuth_with_config(
         if segment_summary.strip():
             batch_segment_summaries.append(segment_summary)
 
-        checkpoint.upsert_segment(
-            SegmentKey(
-                transcript_id=work.segment.transcript_id,
-                relative_path=work.segment.relative_path,
-            ),
-            work.end_line,
-        )
-        checkpoint.save(ckpt_path)
+        if not dry_run:
+            checkpoint.upsert_segment(
+                SegmentKey(
+                    transcript_id=work.segment.transcript_id,
+                    relative_path=work.segment.relative_path,
+                ),
+                work.end_line,
+            )
+            checkpoint.save(ckpt_path)
 
     if batch_segment_summaries:
         body = _finalize_batch_summary(
@@ -129,7 +156,12 @@ def _refresh_sleuth_with_config(
             batch_segment_summaries,
         )
         summary = merge_into_summary_header(query, body)
-        summary_path.write_text(summary, encoding="utf-8")
+        if dry_run:
+            sys.stdout.write(summary)
+            if not summary.endswith("\n"):
+                sys.stdout.write("\n")
+        else:
+            summary_path.write_text(summary, encoding="utf-8")
 
     _print_inference_summary(sleuth_id)
 
@@ -176,6 +208,21 @@ class PendingWork:
     segment: TranscriptSegment
     start_line: int
     end_line: int
+
+
+def _session_reprocess_work(seg: TranscriptSegment) -> PendingWork | None:
+    try:
+        total = count_lines(seg.absolute_path)
+    except OSError:
+        return None
+    if total == 0:
+        return None
+
+    return PendingWork(
+        segment=seg,
+        start_line=1,
+        end_line=total,
+    )
 
 
 def _pending_work(

@@ -445,3 +445,247 @@ class TestRefreshOrchestration:
             assert ckpt.line_count_map()[key] == 1
             key2 = SegmentKey(transcript_id="seg1", relative_path="seg1.jsonl")
             assert key2 not in ckpt.line_count_map()
+
+
+class TestSessionScopedRefresh:
+    def test_session_filter_limits_segments_and_preserves_other_checkpoints(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            other_key = SegmentKey(transcript_id="other-session", relative_path="other-session.jsonl")
+            ckpt = Checkpoint(processed=[])
+            ckpt.upsert_segment(other_key, 5)
+            ckpt.save(checkpoint_path(sleuth_dir))
+
+            target_path = root / "target.jsonl"
+            target_path.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+            other_path = root / "other.jsonl"
+            other_path.write_text('{"role":"user","content":"other"}\n', encoding="utf-8")
+
+            segments = [
+                _make_segment("target-session", target_path),
+                TranscriptSegment(
+                    transcript_id="other-session",
+                    relative_path="other-session.jsonl",
+                    absolute_path=other_path,
+                    mtime=2.0,
+                ),
+            ]
+
+            processed_segments: list[str] = []
+
+            def fake_segment_pipeline(_client, _query, path, start_line, end_line, *_args, **_kwargs):
+                processed_segments.append(f"{path}:{start_line}-{end_line}")
+                return "session summary"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=segments),
+                patch("sleuth.refresh.run_segment_pipeline", side_effect=fake_segment_pipeline),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    return_value="merged body",
+                ),
+            ):
+                _refresh_sleuth_with_config(
+                    root,
+                    "test-sleuth",
+                    _make_config(),
+                    session_id="target-session",
+                )
+
+            assert len(processed_segments) == 1
+            assert "target.jsonl:1-1" in processed_segments[0]
+
+            loaded = Checkpoint.load(checkpoint_path(sleuth_dir))
+            assert loaded.line_count_map()[other_key] == 5
+            target_key = SegmentKey(
+                transcript_id="target-session",
+                relative_path="target-session.jsonl",
+            )
+            assert loaded.line_count_map()[target_key] == 1
+
+    def test_session_scope_reprocesses_from_line_one_when_checkpoint_complete(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            seg_path = root / "sess.jsonl"
+            seg_path.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+            segment = _make_segment("sess-a", seg_path)
+
+            key = SegmentKey(transcript_id="sess-a", relative_path="sess-a.jsonl")
+            ckpt = Checkpoint(processed=[])
+            ckpt.upsert_segment(key, 1)
+            ckpt.save(checkpoint_path(sleuth_dir))
+
+            pipeline_calls: list[tuple[int, int]] = []
+
+            def fake_segment_pipeline(_client, _query, _path, start_line, end_line, *_args, **_kwargs):
+                pipeline_calls.append((start_line, end_line))
+                return "reprocessed summary"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=[segment]),
+                patch("sleuth.refresh.run_segment_pipeline", side_effect=fake_segment_pipeline),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    return_value="merged body",
+                ),
+            ):
+                _refresh_sleuth_with_config(
+                    root,
+                    "test-sleuth",
+                    _make_config(),
+                    session_id="sess-a",
+                )
+
+            assert pipeline_calls == [(1, 1)]
+
+    def test_dry_run_does_not_write_artifacts_and_prints_summary(self, capsys):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            original_summary = merge_into_summary_header(query, "prior body")
+            summary_path = sleuth_dir / "summary.md"
+            summary_path.write_text(original_summary, encoding="utf-8")
+
+            ckpt = Checkpoint(processed=[])
+            ckpt.save(checkpoint_path(sleuth_dir))
+
+            seg_path = root / "seg0.jsonl"
+            seg_path.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+            segment = _make_segment("seg0", seg_path)
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=[segment]),
+                patch("sleuth.refresh.run_segment_pipeline", return_value="new summary"),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    return_value="dry-run merged body",
+                ),
+            ):
+                _refresh_sleuth_with_config(
+                    root,
+                    "test-sleuth",
+                    _make_config(),
+                    dry_run=True,
+                )
+
+            captured = capsys.readouterr()
+            assert summary_path.read_text(encoding="utf-8") == original_summary
+            assert Checkpoint.load(checkpoint_path(sleuth_dir)).line_count_map() == {}
+            assert "dry-run merged body" in captured.out
+            assert "# Test sleuth" in captured.out
+            assert captured.err
+
+    def test_dry_run_with_session_reprocesses_without_persistence(self, capsys):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, query = _setup_project(root)
+            sleuth_dir = root / ".sleuths" / "test-sleuth"
+            sleuth_dir.mkdir(parents=True)
+
+            seg_path = root / "sess.jsonl"
+            seg_path.write_text('{"role":"user","content":"line"}\n', encoding="utf-8")
+            segment = _make_segment("sess-x", seg_path)
+
+            key = SegmentKey(transcript_id="sess-x", relative_path="sess-x.jsonl")
+            ckpt = Checkpoint(processed=[])
+            ckpt.upsert_segment(key, 1)
+            ckpt.save(checkpoint_path(sleuth_dir))
+
+            pipeline_calls: list[tuple[int, int]] = []
+
+            def fake_segment_pipeline(_client, _query, _path, start_line, end_line, *_args, **_kwargs):
+                pipeline_calls.append((start_line, end_line))
+                return "session summary"
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=[segment]),
+                patch("sleuth.refresh.run_segment_pipeline", side_effect=fake_segment_pipeline),
+                patch(
+                    "sleuth.refresh.cross_segment_reduce",
+                    return_value="session dry-run body",
+                ),
+            ):
+                _refresh_sleuth_with_config(
+                    root,
+                    "test-sleuth",
+                    _make_config(),
+                    session_id="sess-x",
+                    dry_run=True,
+                )
+
+            captured = capsys.readouterr()
+            assert pipeline_calls == [(1, 1)]
+            assert Checkpoint.load(checkpoint_path(sleuth_dir)).line_count_map()[key] == 1
+            assert "session dry-run body" in captured.out
+
+    def test_unknown_session_errors_before_inference(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root, _query = _setup_project(root)
+
+            with (
+                patch("sleuth.refresh.resolve_slugs", return_value=["slug"]),
+                patch("sleuth.refresh.discover_segments", return_value=[]),
+                patch("sleuth.refresh.run_segment_pipeline") as pipeline_mock,
+                pytest.raises(RuntimeError, match="no transcript segments found"),
+            ):
+                _refresh_sleuth_with_config(
+                    root,
+                    "test-sleuth",
+                    _make_config(),
+                    session_id="missing-session",
+                )
+
+            pipeline_mock.assert_not_called()
+
+
+class TestRefreshCli:
+    def test_session_requires_sleuth(self):
+        from click.testing import CliRunner
+
+        from sleuth.cli import cli
+
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = runner.invoke(
+                cli,
+                ["--project-root", tmpdir, "refresh", "--session", "abc"],
+            )
+            assert result.exit_code == 1
+            assert "--session requires --sleuth" in result.output
+
+    def test_session_incompatible_with_all(self):
+        from click.testing import CliRunner
+
+        from sleuth.cli import cli
+
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = runner.invoke(
+                cli,
+                [
+                    "--project-root",
+                    tmpdir,
+                    "refresh",
+                    "--all",
+                    "--session",
+                    "abc",
+                ],
+            )
+            assert result.exit_code == 1
+            assert "--session is incompatible with --all" in result.output
