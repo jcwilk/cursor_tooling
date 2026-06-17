@@ -26,8 +26,10 @@ _API_ALIASES = {
 class ProcessingConfig:
     context_budget_tokens: int = 16384
     response_headroom_tokens: int = 1000
-    pass_summary_cap_tokens: int = 2000
-    final_summary_target_tokens: int = 2000
+    pass_summary_cap_tokens: int = 1000
+    final_summary_target_tokens: int = 1000
+    relevance_max_completion_tokens: int = 200
+    summary_max_completion_tokens: int = 1000
     chunk_lines: int = 1
     max_chunks_per_batch: int = 20
     relevance_min_content_tokens: int = 2000
@@ -124,6 +126,18 @@ def load_config(project_root: Path) -> SleuthsConfig:
             final_summary_target_tokens=int(
                 processing_raw.get(
                     "final_summary_target_tokens", ProcessingConfig.final_summary_target_tokens
+                )
+            ),
+            relevance_max_completion_tokens=int(
+                processing_raw.get(
+                    "relevance_max_completion_tokens",
+                    ProcessingConfig.relevance_max_completion_tokens,
+                )
+            ),
+            summary_max_completion_tokens=int(
+                processing_raw.get(
+                    "summary_max_completion_tokens",
+                    ProcessingConfig.summary_max_completion_tokens,
                 )
             ),
             chunk_lines=int(processing_raw.get("chunk_lines", ProcessingConfig.chunk_lines)),

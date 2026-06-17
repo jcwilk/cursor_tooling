@@ -89,7 +89,9 @@ def run_relevance_pass(
         indexed = [(c.index, c.text) for c in group]
         prompt = relevance_prompt(query, indexed, session_tag)
         set_inference_stage(STAGE_RELEVANCE)
-        response = client.generate(prompt)
+        response = client.generate(
+            prompt, max_completion_tokens=processing.relevance_max_completion_tokens
+        )
         max_idx = group[-1].index if group else 0
         ids = parse_relevant_ids(response, max_idx)
         for c in group:
@@ -125,7 +127,9 @@ def run_summarize_pass(
             query, indexed, session_tag, processing.pass_summary_cap_tokens
         )
         set_inference_stage(STAGE_SUMMARIZE)
-        summary = client.generate(prompt)
+        summary = client.generate(
+            prompt, max_completion_tokens=processing.summary_max_completion_tokens
+        )
         if summary.strip():
             pass_summaries.append(summary)
     return pass_summaries
@@ -166,7 +170,9 @@ def recursive_reduce(
         for group in groups:
             prompt = merge_prompt(query, group, session_tag, target, seed_aggregate)
             set_inference_stage(merge_stage)
-            merged = client.generate(prompt)
+            merged = client.generate(
+                prompt, max_completion_tokens=processing.summary_max_completion_tokens
+            )
             if merged.strip():
                 next_round.append(merged)
 

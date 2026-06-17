@@ -39,8 +39,10 @@ transcripts:
 processing:                    # optional — defaults shown
   context_budget_tokens: 16384
   response_headroom_tokens: 1000
-  pass_summary_cap_tokens: 2000
-  final_summary_target_tokens: 2000
+  pass_summary_cap_tokens: 1000
+  final_summary_target_tokens: 1000
+  relevance_max_completion_tokens: 200   # hard API cap for relevance JSON output
+  summary_max_completion_tokens: 1000   # hard API cap for summarize/merge output
   chunk_lines: 1               # lines merged per indexed chunk (default 1)
   max_chunks_per_batch: 20     # max chunks per relevance/summarize group
   relevance_min_content_tokens: 2000   # relevance batch growth floor (content only)
@@ -153,9 +155,9 @@ Refresh scans local transcripts (primary workspace slug + `git worktree list` + 
 **Per-segment pipeline** (LangGraph `StateGraph`):
 
 1. **Chunk** — stream small indexed chunks from the checkpoint tail (default: one transcript line per chunk).
-2. **Relevance** — batch chunks using minimum-target growth (~2000 content tokens by default) up to a maximum ceiling (~14000); model returns JSON `relevant_ids`; non-selected chunks are dropped.
-3. **Summarize** — batch filtered chunks toward a summarize-stage target (~8000 content tokens); one pass summary per group.
-4. **Reduce** — recursively merge pass summaries in pairs (default max 2 per merge group) toward a merge-stage target (~8000 content tokens) until one bounded result remains (skipped when only one pass summary).
+2. **Relevance** — batch chunks using minimum-target growth (~2000 content tokens by default) up to a maximum ceiling (~14000); model returns JSON `relevant_ids`; non-selected chunks are dropped. Inference requests include a hard completion cap (`relevance_max_completion_tokens`, default 200).
+3. **Summarize** — batch filtered chunks toward a summarize-stage target (~8000 content tokens); one pass summary per group. Inference requests include a hard completion cap (`summary_max_completion_tokens`, default 1000).
+4. **Reduce** — recursively merge pass summaries in pairs (default max 2 per merge group) toward a merge-stage target (~8000 content tokens) until one bounded result remains (skipped when only one pass summary). Merge inference uses the same summary completion cap.
 
 When LangSmith tracing is enabled (`.sleuths/secrets.env`), refresh exports **one root trace per refresh operation** with named child spans for segment processing, each pipeline phase, and individual inference calls.
 

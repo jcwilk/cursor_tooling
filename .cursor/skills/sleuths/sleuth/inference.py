@@ -58,29 +58,35 @@ def _increment_calls() -> None:
 
 
 @traceable(name="sleuth inference generate call", run_type="llm")
-def _generate_traced(config: OllamaConfig, prompt: str) -> str:
+def _generate_traced(
+    config: OllamaConfig, prompt: str, max_completion_tokens: int | None = None
+) -> str:
     _increment_calls()
     if config.api == InferenceApi.OLLAMA:
-        return _generate_ollama(config, prompt)
-    return _generate_openai_chat(config, prompt)
+        return _generate_ollama(config, prompt, max_completion_tokens)
+    return _generate_openai_chat(config, prompt, max_completion_tokens)
 
 
 @dataclass
 class InferenceClient:
     config: OllamaConfig
 
-    def generate(self, prompt: str) -> str:
-        return _generate_traced(self.config, prompt)
+    def generate(self, prompt: str, *, max_completion_tokens: int | None = None) -> str:
+        return _generate_traced(self.config, prompt, max_completion_tokens)
 
 
-def _generate_ollama(config: OllamaConfig, prompt: str) -> str:
+def _generate_ollama(
+    config: OllamaConfig, prompt: str, max_completion_tokens: int | None = None
+) -> str:
     base = config.base_url.rstrip("/")
     url = f"{base}/api/generate"
-    body = {
+    body: dict[str, object] = {
         "model": config.model,
         "prompt": prompt,
         "stream": False,
     }
+    if max_completion_tokens is not None:
+        body["options"] = {"num_predict": max_completion_tokens}
     resp = requests.post(url, json=body, timeout=600)
     if not resp.ok:
         raise RuntimeError(
@@ -90,14 +96,18 @@ def _generate_ollama(config: OllamaConfig, prompt: str) -> str:
     return str(parsed.get("response", "")).strip()
 
 
-def _generate_openai_chat(config: OllamaConfig, prompt: str) -> str:
+def _generate_openai_chat(
+    config: OllamaConfig, prompt: str, max_completion_tokens: int | None = None
+) -> str:
     base = config.base_url.rstrip("/")
     url = f"{base}/v1/chat/completions"
-    body = {
+    body: dict[str, object] = {
         "model": config.model,
         "messages": [{"role": "user", "content": prompt}],
         "stream": False,
     }
+    if max_completion_tokens is not None:
+        body["max_tokens"] = max_completion_tokens
     resp = requests.post(url, json=body, timeout=600)
     body_text = resp.text
     if not resp.ok:

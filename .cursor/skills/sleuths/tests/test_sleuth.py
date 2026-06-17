@@ -8,19 +8,218 @@ import pytest
 import yaml
 
 from sleuth.checkpoint import Checkpoint, SegmentKey, checkpoint_path
-from sleuth.config import InferenceApi, OllamaConfig, ProcessingConfig, SleuthsConfig, TranscriptsConfig
+from sleuth.config import InferenceApi, OllamaConfig, ProcessingConfig, SleuthsConfig, TranscriptsConfig, load_config
 from sleuth.context_budget import (
     group_by_budget,
     group_chunks_by_budget,
     group_chunks_by_min_max_budget,
 )
 from sleuth.discover import TranscriptSegment
-from sleuth.pipeline import merge_into_summary_header, run_relevance_pass
+from sleuth.inference import InferenceClient, _generate_ollama, _generate_openai_chat
+from sleuth.pipeline import (
+    merge_into_summary_header,
+    recursive_reduce,
+    run_relevance_pass,
+    run_summarize_pass,
+)
 from sleuth.query import SleuthQuery
 from sleuth.refresh import PendingWork, _refresh_sleuth_with_config
 from sleuth.relevance import parse_relevant_ids
 from sleuth.slug import slug_from_path
 from sleuth.token import estimate_tokens
+
+
+class TestProcessingConfig:
+    def test_completion_limit_defaults(self):
+        processing = ProcessingConfig()
+        assert processing.relevance_max_completion_tokens == 200
+        assert processing.summary_max_completion_tokens == 1000
+        assert processing.pass_summary_cap_tokens == 1000
+        assert processing.final_summary_target_tokens == 1000
+
+    def test_load_config_parses_completion_limits(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            sleuths = root / ".sleuths"
+            sleuths.mkdir()
+            (sleuths / "config.yaml").write_text(
+                yaml.dump(
+                    {
+                        "ollama": {
+                            "base_url": "http://127.0.0.1:11434",
+                            "model": "test-model",
+                        },
+                        "processing": {
+                            "relevance_max_completion_tokens": 150,
+                            "summary_max_completion_tokens": 800,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_config(root)
+            assert config.processing.relevance_max_completion_tokens == 150
+            assert config.processing.summary_max_completion_tokens == 800
+
+
+class TestInferenceClient:
+    def test_ollama_request_includes_num_predict_when_limit_set(self):
+        config = OllamaConfig(
+            base_url="http://127.0.0.1:11434",
+            model="test-model",
+            api=InferenceApi.OLLAMA,
+        )
+        captured: dict = {}
+
+        def fake_post(url, json, timeout):
+            captured["url"] = url
+            captured["body"] = json
+            class Resp:
+                ok = True
+
+                def json(self):
+                    return {"response": "ok"}
+
+            return Resp()
+
+        with patch("sleuth.inference.requests.post", side_effect=fake_post):
+            _generate_ollama(config, "prompt", max_completion_tokens=200)
+
+        assert captured["body"]["options"] == {"num_predict": 200}
+
+    def test_ollama_request_omits_options_without_limit(self):
+        config = OllamaConfig(
+            base_url="http://127.0.0.1:11434",
+            model="test-model",
+            api=InferenceApi.OLLAMA,
+        )
+        captured: dict = {}
+
+        def fake_post(url, json, timeout):
+            captured["body"] = json
+            class Resp:
+                ok = True
+
+                def json(self):
+                    return {"response": "ok"}
+
+            return Resp()
+
+        with patch("sleuth.inference.requests.post", side_effect=fake_post):
+            _generate_ollama(config, "prompt")
+
+        assert "options" not in captured["body"]
+
+    def test_openai_chat_request_includes_max_tokens_when_limit_set(self):
+        config = OllamaConfig(
+            base_url="http://127.0.0.1:11435",
+            model="test-model",
+            api=InferenceApi.OPENAI_CHAT,
+        )
+        captured: dict = {}
+
+        def fake_post(url, json, timeout):
+            captured["url"] = url
+            captured["body"] = json
+            class Resp:
+                ok = True
+                text = '{"choices":[{"message":{"content":"ok"}}]}'
+
+            return Resp()
+
+        with patch("sleuth.inference.requests.post", side_effect=fake_post):
+            _generate_openai_chat(config, "prompt", max_completion_tokens=1000)
+
+        assert captured["body"]["max_tokens"] == 1000
+
+    def test_openai_chat_request_omits_max_tokens_without_limit(self):
+        config = OllamaConfig(
+            base_url="http://127.0.0.1:11435",
+            model="test-model",
+            api=InferenceApi.OPENAI_CHAT,
+        )
+        captured: dict = {}
+
+        def fake_post(url, json, timeout):
+            captured["body"] = json
+            class Resp:
+                ok = True
+                text = '{"choices":[{"message":{"content":"ok"}}]}'
+
+            return Resp()
+
+        with patch("sleuth.inference.requests.post", side_effect=fake_post):
+            _generate_openai_chat(config, "prompt")
+
+        assert "max_tokens" not in captured["body"]
+
+
+class TestPipelineCompletionLimits:
+    def _chunk(self, index: int, chars: int):
+        from sleuth.chunk import IndexedChunk
+
+        return IndexedChunk(index=index, text="x" * chars)
+
+    def test_relevance_pass_uses_relevance_completion_limit(self):
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            relevance_min_content_tokens=100,
+            relevance_max_content_tokens=5000,
+            relevance_max_completion_tokens=200,
+            max_chunks_per_batch=20,
+        )
+        chunks = [self._chunk(0, 400)]
+        client = Mock()
+        client.generate.return_value = '{"relevant_ids": [0]}'
+
+        run_relevance_pass(client, query, chunks, processing, "sess")
+
+        client.generate.assert_called_once()
+        _, kwargs = client.generate.call_args
+        assert kwargs["max_completion_tokens"] == 200
+
+    def test_summarize_pass_uses_summary_completion_limit(self):
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            summarize_target_content_tokens=8000,
+            summary_max_completion_tokens=1000,
+            pass_summary_cap_tokens=1000,
+            max_chunks_per_batch=20,
+        )
+        chunks = [self._chunk(0, 400)]
+        client = Mock()
+        client.generate.return_value = "summary text"
+
+        run_summarize_pass(client, query, chunks, processing, "sess")
+
+        client.generate.assert_called_once()
+        _, kwargs = client.generate.call_args
+        assert kwargs["max_completion_tokens"] == 1000
+
+    def test_merge_pass_uses_summary_completion_limit(self):
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            merge_target_content_tokens=8000,
+            merge_max_items_per_batch=2,
+            summary_max_completion_tokens=1000,
+            final_summary_target_tokens=100,
+        )
+        summaries = ["summary 0", "summary 1", "summary 2"]
+        client = Mock()
+        client.generate.return_value = "merged"
+
+        recursive_reduce(client, query, summaries, processing, "sess")
+
+        assert client.generate.call_count >= 1
+        for call in client.generate.call_args_list:
+            _, kwargs = call
+            assert kwargs["max_completion_tokens"] == 1000
 
 
 class TestSlug:
