@@ -36,6 +36,7 @@ class TestProcessingConfig:
         assert processing.summary_max_completion_tokens == 1000
         assert processing.pass_summary_cap_tokens == 1000
         assert processing.final_summary_target_tokens == 1000
+        assert processing.max_parallel_inference_requests == 4
 
     def test_load_config_parses_completion_limits(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -60,6 +61,50 @@ class TestProcessingConfig:
             config = load_config(root)
             assert config.processing.relevance_max_completion_tokens == 150
             assert config.processing.summary_max_completion_tokens == 800
+
+    def test_load_config_clamps_parallel_requests_below_one(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            sleuths = root / ".sleuths"
+            sleuths.mkdir()
+            (sleuths / "config.yaml").write_text(
+                yaml.dump(
+                    {
+                        "ollama": {
+                            "base_url": "http://127.0.0.1:11434",
+                            "model": "test-model",
+                        },
+                        "processing": {
+                            "max_parallel_inference_requests": 0,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_config(root)
+            assert config.processing.max_parallel_inference_requests == 1
+
+    def test_load_config_parses_parallel_requests(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            sleuths = root / ".sleuths"
+            sleuths.mkdir()
+            (sleuths / "config.yaml").write_text(
+                yaml.dump(
+                    {
+                        "ollama": {
+                            "base_url": "http://127.0.0.1:11434",
+                            "model": "test-model",
+                        },
+                        "processing": {
+                            "max_parallel_inference_requests": 2,
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            config = load_config(root)
+            assert config.processing.max_parallel_inference_requests == 2
 
 
 class TestInferenceClient:
@@ -110,7 +155,7 @@ class TestInferenceClient:
 
         assert "options" not in captured["body"]
 
-    def test_openai_chat_request_includes_max_tokens_when_limit_set(self):
+    def test_openai_chat_request_includes_max_completion_tokens_when_limit_set(self):
         config = OllamaConfig(
             base_url="http://127.0.0.1:11435",
             model="test-model",
@@ -130,9 +175,9 @@ class TestInferenceClient:
         with patch("sleuth.inference.requests.post", side_effect=fake_post):
             _generate_openai_chat(config, "prompt", max_completion_tokens=1000)
 
-        assert captured["body"]["max_tokens"] == 1000
+        assert captured["body"]["max_completion_tokens"] == 1000
 
-    def test_openai_chat_request_omits_max_tokens_without_limit(self):
+    def test_openai_chat_request_omits_max_completion_tokens_without_limit(self):
         config = OllamaConfig(
             base_url="http://127.0.0.1:11435",
             model="test-model",
@@ -151,7 +196,7 @@ class TestInferenceClient:
         with patch("sleuth.inference.requests.post", side_effect=fake_post):
             _generate_openai_chat(config, "prompt")
 
-        assert "max_tokens" not in captured["body"]
+        assert "max_completion_tokens" not in captured["body"]
 
 
 class TestPipelineCompletionLimits:
@@ -172,7 +217,7 @@ class TestPipelineCompletionLimits:
         )
         chunks = [self._chunk(0, 400)]
         client = Mock()
-        client.generate.return_value = '{"relevant_ids": [0]}'
+        client.generate.return_value = "0"
 
         run_relevance_pass(client, query, chunks, processing, "sess")
 
@@ -247,17 +292,35 @@ class TestToken:
 
 class TestRelevance:
     def test_parses_valid_ids(self):
-        assert parse_relevant_ids('{"relevant_ids": [0, 2, 5]}', 5) == [0, 2, 5]
+        assert parse_relevant_ids("0,2,5", 5) == [0, 2, 5]
+
+    def test_parses_whitespace(self):
+        assert parse_relevant_ids(" 0 , 2 , 5 ", 5) == [0, 2, 5]
+
+    def test_empty_response(self):
+        assert parse_relevant_ids("", 5) == []
+        assert parse_relevant_ids("   ", 5) == []
 
     def test_ignores_out_of_range(self):
-        assert parse_relevant_ids('{"relevant_ids": [0, 99]}', 3) == [0]
+        assert parse_relevant_ids("0,99", 3) == [0]
+
+    def test_ignores_negative_indices(self):
+        assert parse_relevant_ids("-1,0,2", 3) == [0, 2]
+
+    def test_skips_non_numeric_tokens(self):
+        assert parse_relevant_ids("0,abc,2", 5) == [0, 2]
+
+    def test_dedupes_and_sorts(self):
+        assert parse_relevant_ids("5,0,5,2", 5) == [0, 2, 5]
 
     def test_strips_fences(self):
-        raw = '```json\n{"relevant_ids": [1]}\n```'
-        assert parse_relevant_ids(raw, 3) == [1]
+        assert parse_relevant_ids("```\n0,2\n```", 5) == [0, 2]
 
-    def test_parse_failure_empty(self):
+    def test_unparseable_prose_empty(self):
         assert parse_relevant_ids("not json", 3) == []
+
+    def test_non_numeric_only_empty(self):
+        assert parse_relevant_ids("foo,bar", 3) == []
 
 
 class TestContextBudget:
@@ -362,7 +425,7 @@ class TestRelevanceBatching:
             return groups
 
         client = Mock()
-        client.generate.return_value = '{"relevant_ids": []}'
+        client.generate.return_value = ""
 
         with patch(
             "sleuth.pipeline.group_chunks_by_min_max_budget",
@@ -407,6 +470,120 @@ class TestMergeBatching:
 
         assert merge_group_sizes
         assert all(size <= 2 for size in merge_group_sizes)
+
+
+class TestParallelInference:
+    def _chunk(self, index: int, chars: int):
+        from sleuth.chunk import IndexedChunk
+
+        return IndexedChunk(index=index, text="x" * chars)
+
+    def test_relevance_respects_parallel_cap(self):
+        import threading
+        import time
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            relevance_min_content_tokens=100,
+            relevance_max_content_tokens=500,
+            max_parallel_inference_requests=2,
+            max_chunks_per_batch=1,
+        )
+        chunks = [self._chunk(i, 400) for i in range(6)]
+
+        active = 0
+        max_active = 0
+        lock = threading.Lock()
+
+        def slow_generate(*_args, **_kwargs):
+            nonlocal active, max_active
+            with lock:
+                active += 1
+                max_active = max(max_active, active)
+            time.sleep(0.05)
+            with lock:
+                active -= 1
+            return "0"
+
+        client = Mock()
+        client.generate.side_effect = slow_generate
+
+        run_relevance_pass(client, query, chunks, processing, "sess")
+
+        assert max_active <= 2
+        assert client.generate.call_count == 6
+
+    def test_summarize_respects_parallel_cap(self):
+        import threading
+        import time
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            summarize_target_content_tokens=8000,
+            max_parallel_inference_requests=2,
+            max_chunks_per_batch=1,
+        )
+        chunks = [self._chunk(i, 400) for i in range(6)]
+
+        active = 0
+        max_active = 0
+        lock = threading.Lock()
+
+        def slow_generate(*_args, **_kwargs):
+            nonlocal active, max_active
+            with lock:
+                active += 1
+                max_active = max(max_active, active)
+            time.sleep(0.05)
+            with lock:
+                active -= 1
+            return "summary"
+
+        client = Mock()
+        client.generate.side_effect = slow_generate
+
+        run_summarize_pass(client, query, chunks, processing, "sess")
+
+        assert max_active <= 2
+        assert client.generate.call_count == 6
+
+    def test_merge_respects_parallel_cap(self):
+        import threading
+        import time
+        from unittest.mock import Mock
+
+        query = _make_query()
+        processing = ProcessingConfig(
+            merge_target_content_tokens=8000,
+            merge_max_items_per_batch=2,
+            max_parallel_inference_requests=2,
+            final_summary_target_tokens=100,
+        )
+        summaries = [f"summary {i}" for i in range(4)]
+
+        active = 0
+        max_active = 0
+        lock = threading.Lock()
+
+        def slow_generate(*_args, **_kwargs):
+            nonlocal active, max_active
+            with lock:
+                active += 1
+                max_active = max(max_active, active)
+            time.sleep(0.05)
+            with lock:
+                active -= 1
+            return "merged"
+
+        client = Mock()
+        client.generate.side_effect = slow_generate
+
+        recursive_reduce(client, query, summaries, processing, "sess")
+
+        assert max_active <= 2
+        assert client.generate.call_count == 3
 
 
 class TestCheckpoint:

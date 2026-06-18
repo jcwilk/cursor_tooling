@@ -107,7 +107,7 @@ def _generate_openai_chat(
         "stream": False,
     }
     if max_completion_tokens is not None:
-        body["max_tokens"] = max_completion_tokens
+        body["max_completion_tokens"] = max_completion_tokens
     resp = requests.post(url, json=body, timeout=600)
     body_text = resp.text
     if not resp.ok:

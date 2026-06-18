@@ -22,11 +22,9 @@ Lens instructions:
 
 Source session: {session_tag}
 
-Each chunk below is labeled with a zero-based index. Respond with ONLY a JSON object (no prose, no markdown fences) listing indices of chunks whose content is relevant to the sleuth topic:
+Each chunk below is labeled with a zero-based index. Respond with ONLY comma-separated zero-based indices of relevant chunks (no JSON, no prose, no markdown fences). Examples: 0,2,5
 
-{{"relevant_ids": [0, 2]}}
-
-If nothing is relevant, respond: {{"relevant_ids": []}}
+If nothing is relevant, respond with an empty string.
 
 Indexed chunks:{body}
 """

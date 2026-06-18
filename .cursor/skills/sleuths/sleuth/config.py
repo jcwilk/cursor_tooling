@@ -37,6 +37,7 @@ class ProcessingConfig:
     summarize_target_content_tokens: int = 8000
     merge_target_content_tokens: int = 8000
     merge_max_items_per_batch: int = 2
+    max_parallel_inference_requests: int = 4
 
 
 @dataclass
@@ -174,8 +175,19 @@ def load_config(project_root: Path) -> SleuthsConfig:
                     ProcessingConfig.merge_max_items_per_batch,
                 )
             ),
+            max_parallel_inference_requests=_clamp_parallel_inference_requests(
+                processing_raw.get(
+                    "max_parallel_inference_requests",
+                    ProcessingConfig.max_parallel_inference_requests,
+                )
+            ),
         ),
     )
+
+
+def _clamp_parallel_inference_requests(value: object) -> int:
+    n = int(value)  # type: ignore[arg-type]
+    return max(1, n)
 
 
 def cursor_projects_dir() -> Path:

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import re
 import sys
 
@@ -8,24 +7,35 @@ import sys
 def parse_relevant_ids(response: str, max_index: int) -> list[int]:
     """Parse LLM relevance output into zero-based chunk indices."""
     trimmed = _strip_code_fences(response.strip())
-    try:
-        parsed = json.loads(trimmed)
-    except json.JSONDecodeError as e:
-        print(f"relevance: failed to parse JSON: {e}", file=sys.stderr)
+    if not trimmed:
         return []
 
-    raw_ids = parsed.get("relevant_ids", []) if isinstance(parsed, dict) else []
     ids: list[int] = []
-    for v in raw_ids:
-        idx: int | None = None
-        if isinstance(v, int):
-            idx = v
-        elif isinstance(v, float) and v.is_integer():
-            idx = int(v)
-        if idx is None or idx > max_index:
+    saw_token = False
+    for token in trimmed.split(","):
+        part = token.strip()
+        if not part:
+            continue
+        saw_token = True
+        if not re.fullmatch(r"-?\d+", part):
+            print(
+                f"relevance: skipping non-numeric token {part!r}",
+                file=sys.stderr,
+            )
+            continue
+        idx = int(part)
+        if idx < 0 or idx > max_index:
             continue
         if idx not in ids:
             ids.append(idx)
+
+    if saw_token and not ids:
+        print("relevance: no valid indices in response", file=sys.stderr)
+        return []
+    if not saw_token and trimmed:
+        print(f"relevance: unparseable response: {trimmed!r}", file=sys.stderr)
+        return []
+
     ids.sort()
     return ids
 

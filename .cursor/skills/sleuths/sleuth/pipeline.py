@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Callable, TypeVar
 
 from langsmith import traceable
 
@@ -34,6 +36,25 @@ from sleuth.prompts import (
 from sleuth.query import SleuthQuery
 from sleuth.relevance import parse_relevant_ids
 from sleuth.token import estimate_tokens
+
+T = TypeVar("T")
+R = TypeVar("R")
+
+
+def run_parallel_batches(
+    items: list[T],
+    max_workers: int,
+    fn: Callable[[int, T], R],
+) -> list[R]:
+    if not items:
+        return []
+    workers = max(1, max_workers)
+    results: list[R | None] = [None] * len(items)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(fn, idx, item) for idx, item in enumerate(items)]
+        for idx, future in enumerate(futures):
+            results[idx] = future.result()
+    return results  # type: ignore[list-item]
 
 
 def stream_chunks(
@@ -77,8 +98,7 @@ def run_relevance_pass(
     max_items = processing.max_chunks_per_batch
     groups = group_chunks_by_min_max_budget(chunks, min_content, max_content, max_items)
 
-    relevant: list[IndexedChunk] = []
-    for group in groups:
+    def process_group(_idx: int, group: list[IndexedChunk]) -> list[IndexedChunk]:
         group_tokens = sum(estimate_tokens(c.text) for c in group)
         if group_tokens < min_content:
             print(
@@ -94,9 +114,14 @@ def run_relevance_pass(
         )
         max_idx = group[-1].index if group else 0
         ids = parse_relevant_ids(response, max_idx)
-        for c in group:
-            if c.index in ids:
-                relevant.append(c)
+        return [c for c in group if c.index in ids]
+
+    group_results = run_parallel_batches(
+        groups, processing.max_parallel_inference_requests, process_group
+    )
+    relevant: list[IndexedChunk] = []
+    for group_relevant in group_results:
+        relevant.extend(group_relevant)
     return relevant
 
 
@@ -120,19 +145,20 @@ def run_summarize_pass(
     max_items = processing.max_chunks_per_batch
     groups = group_chunks_by_budget(relevant, budget, max_items)
 
-    pass_summaries: list[str] = []
-    for group in groups:
+    def process_group(_idx: int, group: list[IndexedChunk]) -> str:
         indexed = [(c.index, c.text) for c in group]
         prompt = summarize_prompt(
             query, indexed, session_tag, processing.pass_summary_cap_tokens
         )
         set_inference_stage(STAGE_SUMMARIZE)
-        summary = client.generate(
+        return client.generate(
             prompt, max_completion_tokens=processing.summary_max_completion_tokens
         )
-        if summary.strip():
-            pass_summaries.append(summary)
-    return pass_summaries
+
+    summaries = run_parallel_batches(
+        groups, processing.max_parallel_inference_requests, process_group
+    )
+    return [summary for summary in summaries if summary.strip()]
 
 
 def recursive_reduce(
@@ -166,15 +192,17 @@ def recursive_reduce(
         )
         groups = group_by_budget(summaries, budget, max_items)
 
-        next_round: list[str] = []
-        for group in groups:
+        def process_group(_idx: int, group: list[str]) -> str:
             prompt = merge_prompt(query, group, session_tag, target, seed_aggregate)
             set_inference_stage(merge_stage)
-            merged = client.generate(
+            return client.generate(
                 prompt, max_completion_tokens=processing.summary_max_completion_tokens
             )
-            if merged.strip():
-                next_round.append(merged)
+
+        merged_results = run_parallel_batches(
+            groups, processing.max_parallel_inference_requests, process_group
+        )
+        next_round = [merged for merged in merged_results if merged.strip()]
 
         if not next_round:
             break
