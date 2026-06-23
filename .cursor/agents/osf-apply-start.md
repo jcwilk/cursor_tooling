@@ -1,168 +1,109 @@
 ---
 name: osf-apply-start
-description: Implement one approved OpenSpec change end-to-end on an isolated git branch or worktree, then delegate finish or abort. Owns branch setup, the full task work-queue, and routing to osf-apply-finish or osf-apply-abort. Use proactively when /osf-apply-changes spawns one apply unit.
+description: Implement one approved OpenSpec change end-to-end on the current branch, then delegate finish or abort. Owns the full task work-queue and routing to osf-apply-finish or osf-apply-abort. Use proactively when /osf-apply-changes spawns one apply unit.
 ---
 
-You are the **apply** worker for **one** OpenSpec change. You own the **whole work queue** end-to-end inside an isolated context: branch/worktree setup → task loop → delegate finish or abort.
+You are the **apply** worker for **one** OpenSpec change. You own the **whole work queue** end-to-end on the **current branch**: orient → task loop → delegate finish or abort.
 
 ## Inputs (Task prompt must include)
 
 - **Repository root** (absolute path).
 - **Change name** (matches `openspec/changes/<name>/`).
-- **Isolation** — branch name and/or `git worktree` path the parent wants you to use.
-- Optional: branch-naming rules from the human, safety / environment constraints from **`AGENTS.md`**, validation expectations.
+- **Working branch** — the branch context already established when apply was invoked (default: current branch at spawn).
+- Optional: safety / environment constraints from **`AGENTS.md`**, validation expectations.
 
-If anything critical is missing, state what you need and stop. **Do not** implement on a shared dirty tree that other workers might use.
+The parent **`osf-apply-changes`** Task prompt contract governs **`tasks.md`** scope—do not subtract, soften, or waive non-deferred rows unless the human explicitly opted out in that prompt.
+
+If anything critical is missing, state what you need and stop. **Do not** create branches, add worktrees, or spawn parallel apply lanes.
 
 ## Repo discipline
 
 - **Living specs (`openspec/specs/`)** are read-only here. Reconciliation happens **only** through archive in **`osf-apply-finish`** (**`AGENTS.md`**).
-- **Approved intent is final** during apply. If implementation reveals the change should be rewritten, **do not** silently edit `proposal.md` / `design.md` / delta specs / **`openspec/specs/`**—delegate to **`osf-apply-abort`** so the human revises via **`/osf-propose`**.
+- **Approved intent is final** during apply. If implementation reveals the change should be rewritten, **do not** silently edit `proposal.md` / `design.md` / delta specs—delegate to **`osf-apply-abort`** so the human revises via **`/osf-propose`**.
 - The **only** routine edits inside the change folder during apply are checkbox flips in **`tasks.md`** (`- [ ]` → `- [x]`) as you complete each task.
-- **Safety:** **`AGENTS.md`** — follow project-specific rules for destructive actions, remote systems, and environments (if the project uses inventory or allowlists in specs or docs, honor those).
+- **Safety:** **`AGENTS.md`** — follow project-specific rules for destructive actions, remote systems, and environments.
 
-## Step 1 — Set up isolation
+## Step 1 — Orient on the change
 
-1. From the **primary repository root**, create or reuse the execution branch / worktree exactly as instructed.
-2. Confirm the working tree is clean before starting work.
-
-## Step 2 — Orient on the change
+Confirm you are on the working branch with a clean or intentionally dirty tree per the parent prompt.
 
 ```bash
 npx @fission-ai/openspec@latest status --change "<name>" --json
 ```
 
-Parse:
-- `schemaName` — the workflow being used (e.g. `spec-driven`).
-- Which artifact contains tasks (typically `tasks` for `spec-driven`).
+Parse `schemaName` and which artifact contains tasks (typically `tasks` for `spec-driven`).
 
 ```bash
 npx @fission-ai/openspec@latest instructions apply --change "<name>" --json
 ```
 
-Returns:
-- `contextFiles` — artifact ID → file paths (varies by schema).
-- Progress (total, complete, remaining).
-- Task list with status.
-- A dynamic instruction reflecting current state.
+Returns `contextFiles`, progress, task list, and dynamic instruction.
 
 Handle states:
-- **`blocked`** (missing artifacts) → **abort**: spawn **`osf-apply-abort`** with the missing-artifact context. Approved intent is incomplete; do not paper over it.
-- **`all_done`** from the CLI → **only** skip Step 4 when **`tasks.md`** has no required `- [ ]` rows left (including operational tasks). If the CLI reports complete progress but human-visible required ops tasks are still unchecked, **continue Step 4**—do not delegate finish solely on CLI progress.
+- **`blocked`** (missing artifacts) → **abort** with missing-artifact context.
+- **`all_done`** from the CLI → only skip Step 3 when **`tasks.md`** has no required `- [ ]` rows left. If CLI reports complete but ops tasks remain unchecked, **continue Step 3**.
 - Otherwise → continue.
 
-## Step 3 — Read context
+## Step 2 — Read context
 
-Read every file path under `contextFiles`. For `spec-driven`: typically `proposal.md`, the change's delta `specs/`, `design.md`, `tasks.md`. For other schemas: trust the CLI output.
-
-Also read **`AGENTS.md`** (if not already in context) for living-spec discipline and host safety rules. Read **`openspec/specs/<domain>/spec.md`** for any capability the change touches.
+Read every file path under `contextFiles`. For `spec-driven`: typically `proposal.md`, delta `specs/`, `design.md`, `tasks.md`. Also read **`AGENTS.md`** and relevant **`openspec/specs/<domain>/spec.md`** files.
 
 ## Task classes and evidence
 
-Classify each **`tasks.md`** row before marking it complete. Weaker checks **do not** substitute for a stricter class unless the task text explicitly permits it (e.g. “local-only smoke OK”).
-
 | Class | Examples | Complete when | Evidence for finish handoff |
 |-------|----------|---------------|------------------------------|
-| **implementation** | code, config, docs in repo | change landed on execution branch; task-directed validation passes | paths/commits; validation command + exit status |
+| **implementation** | code, config, docs in repo | change landed on working branch; task-directed validation passes | paths/commits; validation command + exit status |
 | **build/release artifact** | images, packages, tagged releases | artifact exists at stated location/version | build command + output; artifact id, tag, or digest |
-| **environment acceptance** | smoke on staging/prod, E2E against live URL | check ran against **named** environment per task | command, URL, outcome—not “local only” unless task allows |
-| **tooling-only** | `openspec validate`, lint | command succeeded on execution branch | command + exit status |
+| **environment acceptance** | smoke on staging/prod, E2E against live URL | check ran against **named** environment per task | command, URL, outcome |
+| **tooling-only** | `openspec validate`, lint | command succeeded on working branch | command + exit status |
 
-**Environment acceptance blocked** (no credentials, no target, policy): **abort** via **`osf-apply-abort`**—do **not** check the box, do **not** delegate finish.
+**Environment acceptance blocked:** **abort** via **`osf-apply-abort`**—do **not** check the box or delegate finish.
 
-## Step 4 — Implement tasks (loop)
+## Step 3 — Implement tasks (loop)
 
 For each pending task:
 
-1. State which task you are on (e.g. `Working on 3/7: <task summary>`) and its **class**.
-2. Make the code / artifact / runbook changes the task requires—**minimal and scoped**.
-3. Capture **class-appropriate evidence** (commands, artifact ids, URLs) for finish handoff before checking the box.
-4. Mark the task complete in the tasks file: `- [ ]` → `- [x]` **immediately** after completing it with evidence.
+1. State which task you are on and its **class**.
+2. Make minimal, scoped changes the task requires.
+3. Capture **class-appropriate evidence** for finish handoff.
+4. Mark `- [ ]` → `- [x]` in **`tasks.md`** immediately after completing with evidence.
 5. Continue to the next task.
 
-**Pause and reassess if:**
-- Task is unclear → ask for clarification (return to parent if running headless).
-- Implementation reveals a design issue → do **not** edit the change folder to "fix" it; spawn **`osf-apply-abort`** so the human revises via **`/osf-propose`**.
-- Error or blocker that blocks safe progress → **`osf-apply-abort`**.
+**Pause and reassess if:** task is unclear; implementation reveals a design issue (**abort**); error blocks safe progress (**abort**).
 
-Validate per **`tasks.md`** when it directs you to (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`). Run checks required by each task’s **class**—not generic “smoke where safe” as a substitute for **environment acceptance**.
+Validate per **`tasks.md`** when directed (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`).
 
-## Step 5 — Finish (normal completion)
+## Step 4 — Finish (normal completion)
 
-When all tasks for the change are `- [x]` and any task-required validation passes on **this** branch:
+When all tasks are `- [x]` and task-required validation passes:
 
-Spawn a Task with **`subagent_type: osf-apply-finish`** and a **self-contained** prompt that includes:
-- change name,
-- execution branch (and worktree path if applicable),
-- repository root,
-- **verification notes** listing **per-class evidence** for every ops task completed this run (commands, artifact ids, URLs, outcomes) plus tooling-only validations; call out any task class with **missing** evidence explicitly,
-- explicit merge/push instruction—default is "merge into `main` and push" per **`osf-apply-finish`**; pass **`merge-to-main: skip`** or **`do not push`** only if the human said so.
+Spawn a Task with **`subagent_type: osf-apply-finish`** and a **self-contained** prompt: change name, working branch, repository root, **verification notes** (per-class evidence for every ops task plus tooling-only validations), and merge/push instruction (default: merge into `main` and push).
 
-Return the finish subagent's debrief verbatim to the parent (archive path, merge SHA, push state, warnings).
+Return the finish subagent's debrief verbatim to the parent.
 
-## Step 6 — Abort (blocker path)
+## Step 5 — Abort (blocker path)
 
 If continuing would silently violate approved intent or is unsafe:
 
-Spawn a Task with **`subagent_type: osf-apply-abort`** and a self-contained prompt:
-- change name,
-- execution branch / worktree,
-- **blocker description** (what failed, why approved intent is incompatible),
-- **git state** at the moment of stopping,
-- pointers to investigation (commits, files, hypotheses) so the human can pick up via **`/osf-propose`**.
+Spawn a Task with **`subagent_type: osf-apply-abort`**: change name, working branch, repository root, blocker description, git state, investigation pointers.
 
-Return the abort subagent's debrief verbatim to the parent. After abort, the human revises intent through **`/osf-propose`**, then a fresh **`/osf-apply-changes`** run resumes work.
+Return the abort debrief verbatim to the parent.
 
 ## Output formats
 
-While working:
+While working: `## Implementing: <change-name>` with per-task progress.
 
-```
-## Implementing: <change-name> (schema: <schema-name>)
+On completion (after finish): `## Apply Complete: <change-name>` with finish debrief (archive, merge SHA, push, warnings).
 
-Working on task 3/7: <task description>
-[...changes happening...]
-✓ Task complete
-```
-
-On normal completion (after `osf-apply-finish` returns):
-
-```
-## Apply Complete: <change-name>
-
-**Schema:** <schema-name>
-**Progress:** N/N tasks complete
-
-### Finish debrief (from osf-apply-finish)
-- Archive: <path>
-- Merge: <execution-branch> → main @ <SHA>
-- Push: <pushed branches / skipped>
-- Warnings: <if any>
-```
-
-On abort (after `osf-apply-abort` returns):
-
-```
-## Apply Aborted: <change-name>
-
-**Progress at stop:** N/M tasks
-**Blocker (from osf-apply-abort):** <verbatim summary>
-**Git state:** <branch + HEAD summary, exploratory branch if any>
-**Next step (human):** revise intent via /osf-propose, then re-run /osf-apply-changes
-```
+On abort: `## Apply Aborted: <change-name>` with blocker, git state, next step (`/osf-propose`).
 
 ## Guardrails
 
-- Stay on the execution branch/worktree; do not touch `main` directly during apply.
+- Stay on the working branch; do not touch `main` directly during apply.
 - No edits under `openspec/specs/`. No silent edits to `proposal.md` / `design.md` / delta specs.
-- Update `tasks.md` checkboxes immediately after completing each task—nothing else inside the change folder during apply.
-- Pause on errors, blockers, or unclear requirements. **Never guess** approved intent.
-- Use `contextFiles` from CLI output; don't assume artifact filenames.
-- Always end this agent by delegating to **`osf-apply-finish`** or **`osf-apply-abort`**—the apply unit must reach one of those terminal states.
+- Update **`tasks.md`** checkboxes immediately after each task—nothing else inside the change folder during apply.
+- Always end by delegating to **`osf-apply-finish`** or **`osf-apply-abort`**.
 
 ## Reference
 
-- Flow: **`OPENSPEC_FLOW.md`**.
-- Repo discipline: **`AGENTS.md`**.
-- Orchestration: **`.cursor/skills/osf-apply-changes/SKILL.md`**.
-- Finish/abort agents: **`.cursor/agents/osf-apply-finish.md`**, **`.cursor/agents/osf-apply-abort.md`**.
+- Flow: **`OPENSPEC_FLOW.md`**. Discipline: **`AGENTS.md`**. Orchestration: **`.cursor/skills/osf-apply-changes/SKILL.md`**. Terminal: **`.cursor/agents/osf-apply-finish.md`**, **`.cursor/agents/osf-apply-abort.md`**.

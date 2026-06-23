@@ -4,6 +4,18 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.3.0] — 2026-06-23
+
+### Changed
+
+- **Apply simplification** — **`osf-apply-changes`** and **`osf-apply-start`** assume the **current branch**; OSF apply no longer prescribes branch/worktree creation, parallel multi-change orchestration, or duplicated worker-ownership lists. Finish/abort agents use **working branch** terminology.
+- **`/osf-propose` lane lock** — upfront writable-scope section: only the active change folder is writable during proposal shaping; bundle/integration edits belong in approved **`tasks.md`** and apply.
+- **`OPENSPEC_FLOW.md`** — **Forbidden lane transitions** subsection; capability table and standard flow updated for current-branch apply.
+
+### Notes for consumers
+
+Upgrading from 1.2.x: humans must choose branch/worktree **before** invoking apply; OSF skills no longer create `apply/<name>` branches or parallel apply lanes.
+
 ## [1.2.0] — 2026-05-31
 
 ### Changed

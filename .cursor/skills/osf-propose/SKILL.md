@@ -10,6 +10,14 @@ This skill is the **intent lane**: durable artifacts under `openspec/changes/<na
 
 > **The most common failure of this skill is producing artifacts that pass `openspec validate` but bake implementation details, scripts, file paths, and YAML field names into `spec.md`. That is the mistake to actively refuse — it costs more than missing artifacts. Roughly half of this file is therefore about **spec quality**, not mechanics. Read it as such.**
 
+## Lane lock
+
+**Writable this turn:** only `openspec/changes/<name>/` for the active change you are shaping.
+
+**Read-only for orientation:** everything else — living specs (`openspec/specs/`), skills (`.cursor/skills/**`), agents (`.cursor/agents/**`), bundle docs (`OPENSPEC_FLOW.md`, `AGENTS.md`, `CHANGELOG.md`), and application code. You may read these to inform proposal artifacts; do not edit them.
+
+**Healthy end state:** validated change folder artifacts + `/osf-explain` debrief — **not** edited skills, agents, or bundle documentation. If your first planned edit is outside the active change folder, **stop** and record bundle/integration targets in `proposal.md`, `design.md`, delta specs, and `tasks.md` for human review; implementation happens via **`/osf-apply-changes`** after approval.
+
 ## Required reading before drafting
 
 Before producing any artifact this turn, read these in order. **If you are about to draft a `spec.md` (delta or otherwise) and have not read these, stop and read them first.**
