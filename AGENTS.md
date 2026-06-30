@@ -59,6 +59,8 @@ Use **`.env`** for local secrets (API keys for optional tools). **`.env`** shoul
 
 ## Conversation sleuths
 
+**In development — reference repository only.** Conversation sleuths are evolving in this OSF reference bundle and **MUST NOT** be deployed to external consumer projects via install/sync. Default OSF target synchronization excludes the sleuths skill and companion tooling; use sleuths only in this reference repo until a future change explicitly promotes them for consumers.
+
 Human-defined **sleuth** lenses summarize local Cursor agent transcripts into progressive, machine-local artifacts. They complement OpenSpec living specs (conversation archaeology, not behavioral contracts).
 
 | Location | Role |

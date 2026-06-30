@@ -12,8 +12,10 @@ disable-model-invocation: true
 
 ## Definitions
 
-- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, **`openspec-flow-install/`**, and **`.cursor/agents/osf-*.md`**.
+- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, and **`.cursor/agents/osf-*.md`**. May also hold reference-only paths (install skill, sleuths, local tooling) that **never** propagate to targets — see **Inventory** below.
 - **Target repo:** Project that should gain or update OSF. Must have `.cursor/skills/` and `.cursor/agents/` (create if missing).
+
+**This install skill is reference-repository-only.** It exists to copy OSF integration assets **from** a reference bundle **into** consumer projects. It MUST NOT be copied to consumer targets — operators run install/upgrade **from** the reference repo (or a checkout of it), not **on** the target.
 
 ## Before changing anything
 
@@ -21,7 +23,9 @@ disable-model-invocation: true
 2. **Read reference version** — From reference **`OPENSPEC_FLOW.md`**, parse YAML front matter for **`OPENSPEC_FLOW_VERSION`** (semver string).
 3. **Read target version** — If target **`OPENSPEC_FLOW.md` exists**, parse its **`OPENSPEC_FLOW_VERSION`**. If missing, treat target as **uninstalled** (version ∅).
 4. **Compare semver** — If target version **equals** reference and files appear present, **verify** Representative files match reference (sizes or checksums optional). If mismatch or older semver → **upgrade path**. If target **newer** than reference → **warn** (“target ahead of reference”) and stop unless the human asks to downgrade.
-5. **Inventory** — List reference paths that constitute the bundle:
+5. **Inventory** — List reference paths that constitute the bundle. Default install and upgrade sync **only** the **Propagated to consumer targets** list. **Never** copy paths from **Reference repository only (never propagate)** unless the human explicitly opts into a non-default scope.
+
+   **Propagated to consumer targets**
 
    ```
    OPENSPEC_FLOW.md
@@ -33,22 +37,29 @@ disable-model-invocation: true
    .cursor/skills/osf-propose/   # include reference/concepts.md
    .cursor/skills/osf-apply-changes/
    .cursor/skills/persist/
-   .cursor/skills/openspec-flow-install/
-   .cursor/skills/sleuths/
-   scripts/build-local-tools.sh
    .cursor/agents/osf-apply-start.md
    .cursor/agents/osf-apply-finish.md
    .cursor/agents/osf-apply-abort.md
    ```
 
+   **Reference repository only (never propagate)**
+
+   ```
+   .cursor/skills/openspec-flow-install/   # install/upgrade tooling; reference-repo-only (see Definitions)
+   .cursor/skills/sleuths/                 # in-development conversation sleuths; not suitable for external deployment
+   scripts/build-local-tools.sh            # one-time sleuths Python setup; no purpose without sleuths on target
+   ```
+
+   **Rationale:** Install tooling exists solely to propagate OSF **from** this reference bundle **to** consumers — it has no role on a target. Sleuths remain in active development in this reference repo and MUST NOT be deployed to external projects via default sync. **`build-local-tools.sh`** exists only to install sleuths local Python deps.
+
    Do **not** copy unrelated `.cursor/` entries from reference if the reference repo ever grows beyond OSF.
 
-   After sync, remind the human to run **`scripts/build-local-tools.sh`** once if the bundle includes local tools (e.g. conversation sleuths Python package). Ensure **`.gitignore`** includes **`.sleuths/`** (merge if the target already has a root `.gitignore`). Remove stale **`.cursor/build-local-tools.sh`** on upgrade if present.
+   On upgrade, remove stale **`.cursor/build-local-tools.sh`** on the target if present (legacy path). Default sync does **not** delete other stale reference-only copies (install skill, sleuths, `scripts/build-local-tools.sh`) already on targets — document manual cleanup if the operator wants them removed.
 
 ## Install (target has no OSF or no version file)
 
 1. Create missing **`.cursor/skills`** / **`.cursor/agents`** on target.
-2. **Copy** (merge = replace-with-reference for these paths): each bundle path above → same relative path under target.
+2. **Copy** (merge = replace-with-reference for these paths): each path under **Propagated to consumer targets** → same relative path under target. **Do not** copy **Reference repository only** paths.
 3. **`AGENTS.md`:**  
    - If target has **no** `AGENTS.md`, copy reference wholesale.  
    - If target **has** its own policies, **merge**: insert OpenSpec/OS sections from reference (workflow + Task discipline) without deleting unrelated sections; preserve project-specific bullets.
@@ -58,7 +69,7 @@ disable-model-invocation: true
 ## Upgrade (target already has OSF)
 
 1. **Backup** — Suggest `git status` clean or commit WIP; optionally duplicate modified skills to a branch.
-2. **Replace** bundle files with reference copies for the inventory list (same relpaths). If the human customized a skill, **diff first** — merge customizations explicitly rather than silently overwriting (stop and ask if unclear).
+2. **Replace** bundle files with reference copies for **Propagated to consumer targets** only (same relpaths). **Do not** push updates to **Reference repository only** paths. If the human customized a skill, **diff first** — merge customizations explicitly rather than silently overwriting (stop and ask if unclear).
 3. **Bump recorded version:** Target **`OPENSPEC_FLOW_VERSION`** MUST match reference after upgrade.
 4. **`concepts.md`:** Prefer reference copy; If the human refreshed concepts from upstream independently, reconcile with their consent.
 
@@ -88,10 +99,11 @@ rsync -a --delete "$REF/.cursor/skills/osf-explain/" "$TGT/.cursor/skills/osf-ex
 rsync -a --delete "$REF/.cursor/skills/osf-propose/" "$TGT/.cursor/skills/osf-propose/"
 rsync -a --delete "$REF/.cursor/skills/osf-apply-changes/" "$TGT/.cursor/skills/osf-apply-changes/"
 rsync -a --delete "$REF/.cursor/skills/persist/" "$TGT/.cursor/skills/persist/"
-rsync -a --delete "$REF/.cursor/skills/openspec-flow-install/" "$TGT/.cursor/skills/openspec-flow-install/"
-rsync -a --delete "$REF/.cursor/skills/sleuths/" "$TGT/.cursor/skills/sleuths/"
-install -m755 "$REF/scripts/build-local-tools.sh" "$TGT/scripts/build-local-tools.sh"
-rm -f "$TGT/.cursor/build-local-tools.sh"
+# Reference-only paths excluded from default sync:
+#   .cursor/skills/openspec-flow-install/
+#   .cursor/skills/sleuths/
+#   scripts/build-local-tools.sh
+rm -f "$TGT/.cursor/build-local-tools.sh"   # legacy path cleanup only
 install -m644 "$REF/.cursor/agents/osf-apply-"*.md "$TGT/.cursor/agents/"
 install -m644 "$REF/OPENSPEC_FLOW.md" "$TGT/OPENSPEC_FLOW.md"
 install -m644 "$REF/CHANGELOG.md" "$TGT/CHANGELOG.md"
