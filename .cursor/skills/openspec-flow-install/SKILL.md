@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 ## Definitions
 
-- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`**, **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, and **`.cursor/agents/osf-*.md`**. May also hold reference-only paths (install skill, sleuths, local tooling) that **never** propagate to targets — see **Inventory** below.
+- **Reference repo:** Source of truth for the bundle — usually **this repository** holding **`OPENSPEC_FLOW_VERSION`**, **`AGENTS.md`**, **`OPENSPEC_FLOW.md`**, **`CHANGELOG.md`** (reference-repo release history only), **`.cursor/skills/osf-*/`**, **`osf-propose/reference/`**, **`persist/`**, and **`.cursor/agents/osf-*.md`**. May also hold reference-only paths (install skill, sleuths, bundle changelog, local tooling) that **never** propagate to targets — see **Inventory** below.
 - **Target repo:** Project that should gain or update OSF. Must have `.cursor/skills/` and `.cursor/agents/` (create if missing).
 
 **This install skill is reference-repository-only.** It exists to copy OSF integration assets **from** a reference bundle **into** consumer projects. It MUST NOT be copied to consumer targets — operators run install/upgrade **from** the reference repo (or a checkout of it), not **on** the target.
@@ -30,7 +30,6 @@ disable-model-invocation: true
    ```
    OPENSPEC_FLOW.md
    AGENTS.md
-   CHANGELOG.md                 # human-readable bundle history; optional but recommended
    README.md                    # optional to copy; useful for onboarding
    .cursor/skills/osf-explore/
    .cursor/skills/osf-explain/
@@ -47,14 +46,15 @@ disable-model-invocation: true
    ```
    .cursor/skills/openspec-flow-install/   # install/upgrade tooling; reference-repo-only (see Definitions)
    .cursor/skills/sleuths/                 # in-development conversation sleuths; not suitable for external deployment
+   CHANGELOG.md                            # OSF reference bundle release history; not the target project's changelog
    scripts/build-local-tools.sh            # one-time sleuths Python setup; no purpose without sleuths on target
    ```
 
-   **Rationale:** Install tooling exists solely to propagate OSF **from** this reference bundle **to** consumers — it has no role on a target. Sleuths remain in active development in this reference repo and MUST NOT be deployed to external projects via default sync. **`build-local-tools.sh`** exists only to install sleuths local Python deps.
+   **Rationale:** Install tooling exists solely to propagate OSF **from** this reference bundle **to** consumers — it has no role on a target. Sleuths remain in active development in this reference repo and MUST NOT be deployed to external projects via default sync. **`CHANGELOG.md`** records releases of **this** OSF reference bundle, not the consumer project's own history. **`build-local-tools.sh`** exists only to install sleuths local Python deps.
 
    Do **not** copy unrelated `.cursor/` entries from reference if the reference repo ever grows beyond OSF.
 
-   On upgrade, remove stale **`.cursor/build-local-tools.sh`** on the target if present (legacy path). Default sync does **not** delete other stale reference-only copies (install skill, sleuths, `scripts/build-local-tools.sh`) already on targets — document manual cleanup if the operator wants them removed.
+   On upgrade, remove stale **`.cursor/build-local-tools.sh`** on the target if present (legacy path). Default sync does **not** delete other stale reference-only copies (install skill, sleuths, `CHANGELOG.md`, `scripts/build-local-tools.sh`) already on targets — document manual cleanup if the operator wants them removed.
 
 ## Install (target has no OSF or no version file)
 
@@ -102,11 +102,11 @@ rsync -a --delete "$REF/.cursor/skills/persist/" "$TGT/.cursor/skills/persist/"
 # Reference-only paths excluded from default sync:
 #   .cursor/skills/openspec-flow-install/
 #   .cursor/skills/sleuths/
+#   CHANGELOG.md
 #   scripts/build-local-tools.sh
 rm -f "$TGT/.cursor/build-local-tools.sh"   # legacy path cleanup only
 install -m644 "$REF/.cursor/agents/osf-apply-"*.md "$TGT/.cursor/agents/"
 install -m644 "$REF/OPENSPEC_FLOW.md" "$TGT/OPENSPEC_FLOW.md"
-install -m644 "$REF/CHANGELOG.md" "$TGT/CHANGELOG.md"
 # AGENTS.md and README.md: merge manually or copy if absent
 ```
 

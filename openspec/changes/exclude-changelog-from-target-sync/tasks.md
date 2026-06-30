@@ -2,14 +2,14 @@
 
 ## 1. Install skill
 
-- [ ] 1.1 Confirm `.cursor/skills/openspec-flow-install/SKILL.md` lists bundle release history (`CHANGELOG.md`) under **Reference repository only (never propagate)** — not under propagated paths.
-- [ ] 1.2 Confirm install skill rationale, upgrade stale-copy note, and optional rsync helper exclude release history from default sync.
-- [ ] 1.3 Reconcile any gaps vs the direct edit already in working tree.
+- [x] 1.1 Confirm `.cursor/skills/openspec-flow-install/SKILL.md` lists bundle release history (`CHANGELOG.md`) under **Reference repository only (never propagate)** — not under propagated paths.
+- [x] 1.2 Confirm install skill rationale, upgrade stale-copy note, and optional rsync helper exclude release history from default sync.
+- [x] 1.3 Reconcile any gaps vs the direct edit already in working tree.
 
 ## 2. Verification
 
-- [ ] 2.1 Re-read install inventory against delta spec scenarios (default install/upgrade must not propagate reference-bundle release history).
-- [ ] 2.2 Run `npx @fission-ai/openspec@latest validate exclude-changelog-from-target-sync --type change`.
+- [x] 2.1 Re-read install inventory against delta spec scenarios (default install/upgrade must not propagate reference-bundle release history).
+- [x] 2.2 Run `npx @fission-ai/openspec@latest validate exclude-changelog-from-target-sync --type change`.
 
 ## Explicitly deferred
 
