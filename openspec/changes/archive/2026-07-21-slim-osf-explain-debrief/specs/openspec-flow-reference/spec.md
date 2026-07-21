@@ -13,6 +13,10 @@ Human-facing whole-change debriefs MUST use a short fixed section set with no se
 - **WHEN** a whole-change debrief has no material ambiguity for approve or apply
 - **THEN** the ambiguities section MUST state that none exist rather than omitting the section
 
+#### Scenario: Fast review path
+- **WHEN** a reviewer skims a whole-change debrief for approve-or-refine
+- **THEN** change metadata plus the fixed short section set MUST be sufficient without separate long-form drill-down sections
+
 #### Scenario: All sections always present
 - **WHEN** a whole-change debrief is rendered
 - **THEN** each required section in the fixed set MUST appear even when its content is a short empty-state line
