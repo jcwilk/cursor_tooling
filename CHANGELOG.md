@@ -4,6 +4,16 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.4.0] — 2026-07-21
+
+### Changed
+
+- **Apply worktree hygiene** — **apply-complete** now includes resolving apply-attributable uncommitted/untracked leftovers (incorporate or discard). **`osf-apply-start`** documents scratch placement (project intermediates, else OS temp; no ad-hoc in-repo cache homes), disposable-helper allowance, and exclusion of unrelated concurrent dirt. **`osf-apply-finish`** refuses apply-complete labeling when those leftovers remain unresolved; abort stays reserved for intent/safety blockers, not leftover cleanup. **`osf-apply-changes`** Task prompt contract may add hygiene constraints only.
+
+### Notes for consumers
+
+Upgrading from 1.3.x: expect apply workers to clean or commit their own scratch before finish claims apply-complete; concurrent foreign dirt should be listed in verification notes rather than rewritten.
+
 ## [1.3.0] — 2026-06-23
 
 ### Changed

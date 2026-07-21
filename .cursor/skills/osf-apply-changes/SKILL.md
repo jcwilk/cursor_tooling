@@ -18,7 +18,7 @@ This skill is **just orchestration**. Branch/worktree choice and concurrency are
 
 When constructing the Task prompt for **`osf-apply-start`**, treat approved **`tasks.md`** as the floor:
 
-- **MAY add** constraints: working branch name (for debrief), validation commands, safety boundaries from **`AGENTS.md`**, environment allowlists.
+- **MAY add** constraints: working branch name (for debrief), validation commands, safety boundaries from **`AGENTS.md`**, environment allowlists, worktree-hygiene reminders (scratch in project intermediates or OS temp; commit-or-discard apply-attributable leftovers before finish; exclude unrelated concurrent dirt in verification notes).
 - **MUST NOT subtract, downgrade, or waive** any `- [ ]` row unless the human explicitly opts out in the **same directive**.
 
 | Forbidden (softens approved work) | Allowed (adds constraints only) |
@@ -26,6 +26,7 @@ When constructing the Task prompt for **`osf-apply-start`**, treat approved **`t
 | "Local smoke is enough; skip staging." | "Run task 4.2 against staging URL; credentials in `.env`." |
 | "Checkbox the rest and call finish." | "Complete all sections 1–5; human waived section 6 in this message." |
 | "Skip environment verification if blocked." | "If staging unreachable, **abort**—do not finish." |
+| "Leave scratch; finish can warn." | "Resolve apply-attributable leftovers (commit or discard) before finish; note excluded concurrent dirt." |
 
 ## Single change procedure
 

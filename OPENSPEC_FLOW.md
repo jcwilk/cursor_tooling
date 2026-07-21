@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.3.0"
+OPENSPEC_FLOW_VERSION: "1.4.0"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -102,7 +102,7 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 3. **Apply:** **`/osf-apply-changes`** → **`osf-apply-start`** on the **current branch** (branch/worktree already chosen by the human).
 4. **Finish:** **`osf-apply-finish`** archives, reconciles **`openspec/specs/`**, merges, pushes — or **`osf-apply-abort`** when intent must be revised.
 
-**Success criterion:** a change is **apply-complete** only when every non-deferred **`tasks.md`** row has class-appropriate evidence (or an authorized override) and finish verification passes—not merely when the default branch has merged.
+**Success criterion:** a change is **apply-complete** only when every non-deferred **`tasks.md`** row has class-appropriate evidence (or an authorized override), apply-attributable worktree leftovers are resolved (incorporated or discarded), and finish verification passes—not merely when the default branch has merged.
 
 ## Forbidden lane transitions
 
@@ -119,9 +119,9 @@ Slash commands are **lanes** with distinct writable scope. Crossing lanes withou
 | Term | Meaning |
 |------|---------|
 | **Merge-complete** | Archive ran, living specs reconciled, working branch merged into the default branch (and pushed when agreed). |
-| **Apply-complete** | Merge-complete **and** every non-deferred task—including **build/release artifact** and **environment acceptance** work—has evidence in the apply/finish handoff or an explicit same-message human override; otherwise the apply unit should have **aborted** instead of finishing. |
+| **Apply-complete** | Merge-complete **and** every non-deferred task—including **build/release artifact** and **environment acceptance** work—has evidence in the apply/finish handoff or an explicit same-message human override, **and** apply-attributable worktree leftovers have been incorporated into the delivered change or discarded. Unrelated concurrent dirt (other agents/users/processes) is excluded from that hygiene obligation and noted in the debrief—it does not by itself deny apply-complete. Missing ops evidence still means the apply unit should have **aborted** instead of finishing; leftover agent scratch is commit-or-discard cleanup, not an abort default. |
 
-Repository hygiene (checked boxes, validate, merge) can succeed while operational delivery is still missing. OSF treats that gap as a failure mode: orchestrators must not soften Task prompts, workers must not substitute weaker checks, and finish must not trust checkboxes alone for ops task classes.
+Checked boxes, validate, and merge can succeed while operational delivery is still missing or while agent-created scratch remains. OSF treats both gaps as failure modes for **apply-complete** labeling: orchestrators must not soften Task prompts, workers must not substitute weaker checks, finish must not trust checkboxes alone for ops task classes, and finish must refuse apply-complete while apply-attributable leftovers remain unresolved.
 
 ## Blocked flow
 

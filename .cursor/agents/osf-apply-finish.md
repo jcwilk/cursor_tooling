@@ -18,7 +18,8 @@ You are the **finish** worker for **one** OpenSpec change. You own the **termina
 1. Confirm `tasks.md` reflects completed work (`- [x]` as appropriate) and that implementation on the working branch matches approved artifacts.
 2. Run any task-required validation (e.g. `npx @fission-ai/openspec@latest validate <name> --type change`).
 3. **Operational evidence gate** (fail closed): for each **build/release artifact** and **environment acceptance** task marked `- [x]`, require implementer **verification notes** to cite evidence—or an **explicit human override** in this finish Task prompt. Checkbox alone is **not** sufficient.
-4. If verification fails, **do not** archive. Report gaps and stop.
+4. **Worktree hygiene gate** (refuse apply-complete labeling): inspect `git status`. Require verification notes to state how apply-attributable leftovers were resolved (incorporated/committed or discarded) **or** to list explicit exclusions for unrelated concurrent dirt. If unexplained uncommitted/untracked paths remain that look apply-attributable and notes do not resolve or exclude them, **do not** describe the unit as apply-complete—send the implementer back to commit-or-discard (or document exclusions). **Do not** abort solely for leftover cleanup when incorporate-or-discard remains available; abort stays reserved for intent/safety blockers.
+5. If verification fails, **do not** archive. Report gaps and stop.
 
 ## Step 2 — Archive on the working branch
 
@@ -83,9 +84,10 @@ After push, run `git status` and report any uncommitted paths.
 - **Archive** — succeeded/failed; final archive path; whether `--no-validate` was used.
 - **Living specs** — paths reconciled; result of `validate --specs`.
 - **Operational evidence** — per ops task: succeeded (cite evidence), missing, or override.
+- **Worktree hygiene** — apply-attributable leftovers resolved (how) or excluded concurrent paths (listed); whether apply-complete labeling was refused pending cleanup.
 - **Merge** — default branch, working branch, resulting `HEAD` SHA (or skipped/conflicts).
 - **Push** — branches pushed (or skipped).
-- **Warnings** — authorized overrides; post-merge `git status` items.
+- **Warnings** — authorized overrides; post-merge `git status` items; excluded concurrent dirt.
 
 ## Guardrails
 
