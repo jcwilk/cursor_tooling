@@ -4,6 +4,16 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.5.0] — 2026-07-21
+
+### Changed
+
+- **BREAKING — `/osf-explain` debrief** — whole-change debriefs drop the long drill-down body (Intent through Living-spec impact). Mandatory short section set after metadata: **Spec delta shape** → **Ambiguities** → **Apply scope at shipping** → **Quick read** → **What the human needs to decide**. Spec-quality flag catalogs move to `/osf-propose` / `OPENSPEC_FLOW.md` pointers; quality issues that affect approve/apply still surface under **Ambiguities**. **`osf-propose`** close-out handoff and the `OPENSPEC_FLOW.md` capability-table row updated to match.
+
+### Notes for consumers
+
+Upgrading from 1.4.x: agents and reviewers expecting the old drill-down-then-footer layout will see a shorter approval skim instead. Open the change folder for requirement-level detail.
+
 ## [1.4.0] — 2026-07-21
 
 ### Changed

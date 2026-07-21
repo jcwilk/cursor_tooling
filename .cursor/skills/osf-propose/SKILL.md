@@ -227,7 +227,7 @@ After OpenSpec artifacts for this request are complete and validated:
 
 After artifacts are validated and persisted, render the human-facing closing summary by reading and following **`.cursor/skills/osf-explain/SKILL.md`** with the just-created or refined change as the scope (use the **change-scope template**, not a single-artifact template). **Do not freelance a debrief** — every `/osf-propose` close-out goes through `/osf-explain` so the reviewer sees the same shape every time.
 
-The explain footer (**Ambiguities**, **Apply scope at shipping**, **Quick read**) carries skim and approval context—**do not** instruct agents to echo that footer in **What the human needs to decide**; Decide is action lines only.
+The short explain template is: change metadata → **Spec delta shape** → **Ambiguities** → **Apply scope at shipping** → **Quick read** → **What the human needs to decide**. Do **not** dump removed drill-down sections (Intent, Changelog, Capability impact, Delta details, Spec-quality flags, Design highlights, Tasks, Living-spec impact). **Decide** is action lines only—do not echo Ambiguities, Apply scope, or Quick read there.
 
 If the user explicitly opted out of persist, still run `/osf-explain` against the in-place change folder before ending the turn.
 

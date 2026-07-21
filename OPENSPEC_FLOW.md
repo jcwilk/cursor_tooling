@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.4.0"
+OPENSPEC_FLOW_VERSION: "1.5.0"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -86,7 +86,7 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 |---------------|------|------|
 | **`/osf-explore`** | Skill | Read-only thinking partner; no implementation. |
 | **`/osf-propose`** | Skill | Create or refine a change under `openspec/changes/<name>/`, validate, persist. |
-| **`/osf-explain`** | Skill | Structured human review summary of a change; end-of-debrief skim: **Ambiguities** → **Apply scope at shipping** → **Quick read**. |
+| **`/osf-explain`** | Skill | Short fixed debrief: metadata → **Spec delta shape** → **Ambiguities** → **Apply scope at shipping** → **Quick read** → **Decide**. |
 | **`/osf-apply-changes`** | Skill | Spawns **`osf-apply-start`** (Task-only) workers. |
 | **`/osf-apply-start`** | Subagent | Implements one approved change on the **current branch** (working branch). |
 | **`/osf-apply-finish`** | Subagent | Verify, archive, merge default branch, push. |
