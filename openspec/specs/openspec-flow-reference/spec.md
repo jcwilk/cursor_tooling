@@ -2,7 +2,9 @@
 
 ## Purpose
 TBD - created by archiving change init-normative-openspec-flow-specs. Update Purpose after archive.
+
 ## Requirements
+
 ### Requirement: Cohesive Semantic Version identity
 
 OSF reference bundles MUST expose exactly one Semantic Version identifying the interoperability level of every OSF integration component intentionally distributed as a singular upgrade atom.
@@ -78,7 +80,7 @@ Before OSF archives an approved change, the finish worker MUST verify that build
 #### Scenario: Checkboxes without evidence
 - **WHEN** all tasks appear checked complete but finish verification notes lack evidence for a build, release, or environment acceptance task
 - **THEN** the finish worker MUST NOT archive the change
-- **AND** MUST report the gap to the parent without merging operational incompleteness into the default branch
+- **AND** MUST report the gap to the parent without reconciling living specifications while operational obligations remain unmet
 
 ### Requirement: Proposal-time operational tasks stay unchecked by default
 
@@ -100,15 +102,15 @@ Approved task lists MUST distinguish work required for the current change from w
 
 ### Requirement: Apply-complete distinct from merge-complete
 
-OSF documentation and workers MUST treat merge and archive success as distinct from apply-complete when the approved task list includes operational delivery or live verification obligations, or when uncommitted or untracked worktree changes attributable to the apply unit remain unresolved. Apply-complete REQUIRES merge-complete plus class-appropriate evidence (or authorized override) for every non-deferred task, and REQUIRES that apply-attributable worktree leftovers have been incorporated into the delivered change or discarded. OSF MUST NOT describe an apply unit as apply-complete while those leftovers remain.
+OSF documentation and workers MUST treat archival reconciliation success as distinct from apply-complete when the approved task list includes operational delivery or live verification obligations, or when uncommitted or untracked worktree changes attributable to the apply unit remain unresolved. Apply-complete REQUIRES archive-complete plus class-appropriate evidence (or authorized override) for every non-deferred task, and REQUIRES that apply-attributable worktree leftovers have been incorporated into the delivered change or discarded. OSF MUST NOT describe an apply unit as apply-complete while those leftovers remain. Archive-complete means living behavioral specifications are reconciled on the working branch through OSF archival; it does not require integration into the repository default branch.
 
 #### Scenario: Merge without operational proof
-- **WHEN** a change merges and archives while non-deferred operational tasks lack evidence or authorized override
+- **WHEN** a change archives while non-deferred operational tasks lack evidence or authorized override
 - **THEN** OSF MUST NOT describe the apply unit as apply-complete
 - **AND** reviewers relying on the task list and debrief MUST be able to see either execution evidence or an abort blocker
 
 #### Scenario: Merge with unresolved apply-attributable leftovers
-- **WHEN** a change merges and archives while uncommitted or untracked worktree changes attributable to the apply unit remain
+- **WHEN** a change archives while uncommitted or untracked worktree changes attributable to the apply unit remain
 - **THEN** OSF MUST NOT describe the apply unit as apply-complete
 - **AND** the finish debrief MUST surface those leftovers as unresolved hygiene rather than as an authorized success warning alone
 
@@ -138,7 +140,7 @@ Before an apply run is invoked for an approved change, human-facing change revie
 
 #### Scenario: Approve implies execution contract
 - **WHEN** a human is prompted to approve an apply run after review
-- **THEN** the approval guidance MUST state that apply will execute in-scope tasks or abort rather than merge with silent operational gaps
+- **THEN** the approval guidance MUST state that apply will execute in-scope tasks or abort rather than archive with silent operational gaps
 
 ### Requirement: Change debrief places skim sections at document end
 
@@ -270,3 +272,22 @@ Human-facing whole-change debriefs MUST include a concise characterization of wh
 - **WHEN** a change updates process or bundle guidance without specification requirement deltas
 - **THEN** the delta-shape section MUST say so explicitly rather than omitting the section
 
+### Requirement: Finish completes on working branch by default
+
+When OSF finish succeeds under default guidance, the finish worker MUST verify the approved change, archive it on the working branch so living behavioral specifications reconcile on that branch, commit the archival result on the working branch, and MAY push that working branch to its remote tracking branch when push is not waived. Default finish MUST NOT check out the repository default branch, MUST NOT merge the working branch into the default branch, and MUST NOT push the default branch unless the initiating human explicitly authorized default-branch integration in the same finish directive.
+
+#### Scenario: Default successful finish
+- **WHEN** finish runs without an explicit default-branch integration override
+- **AND** verification and archival succeed on the working branch
+- **THEN** living behavioral specifications are reconciled on the working branch
+- **AND** the finish worker pushes only the working branch when remote push is part of the finish directive and not waived
+
+#### Scenario: Explicit default-branch integration
+- **WHEN** the initiating human explicitly authorizes default-branch integration in the same finish directive
+- **THEN** the finish worker MAY merge the working branch into the default branch and push the default branch
+- **AND** MUST record that override in the finish debrief
+
+#### Scenario: Finish without remote push
+- **WHEN** the finish directive waives remote push
+- **THEN** finish MUST still complete archival reconciliation on the working branch
+- **AND** MUST NOT treat absence of remote push as failure when archival succeeded locally
