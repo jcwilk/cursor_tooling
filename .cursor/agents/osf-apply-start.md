@@ -86,7 +86,7 @@ Apply-complete includes leaving the worktree no dirtier from **this** apply unit
 
 When all tasks are `- [x]`, task-required validation passes, and apply-attributable worktree leftovers are resolved (or explicitly excluded as concurrent dirt):
 
-Spawn a Task with **`subagent_type: osf-apply-finish`** and a **self-contained** prompt: change name, working branch, repository root, **verification notes** (per-class evidence for every ops task plus tooling-only validations, plus hygiene resolution or explicit exclusion paths), and merge/push instruction (default: merge into `main` and push).
+Spawn a Task with **`subagent_type: osf-apply-finish`** and a **self-contained** prompt: change name, working branch, repository root, **verification notes** (per-class evidence for every ops task plus tooling-only validations, plus hygiene resolution or explicit exclusion paths), and push instruction (default: push working branch only; include `merge-to-default-branch: yes` only when the human explicitly authorized default-branch integration in the **same** directive).
 
 Return the finish subagent's debrief verbatim to the parent.
 
@@ -104,7 +104,7 @@ Return the abort debrief verbatim to the parent.
 
 While working: `## Implementing: <change-name>` with per-task progress.
 
-On completion (after finish): `## Apply Complete: <change-name>` with finish debrief (archive, merge SHA, push, warnings).
+On completion (after finish): `## Apply Complete: <change-name>` with finish debrief (archive, working-branch SHA, push, warnings).
 
 On abort: `## Apply Aborted: <change-name>` with blocker, git state, next step (`/osf-propose`).
 

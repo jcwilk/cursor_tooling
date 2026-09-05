@@ -39,7 +39,7 @@ When constructing the Task prompt for **`osf-apply-start`**, treat approved **`t
 
 | Outcome | Subagent |
 |---------|----------|
-| Tasks complete and verified | **`osf-apply-finish`** — verifies, archives on the working branch, merges into `main`, pushes |
+| Tasks complete and verified | **`osf-apply-finish`** — verifies, archives on the working branch, commits, pushes the working branch (default-branch merge only when explicitly authorized in the finish directive) |
 | Cannot continue as written | **`osf-apply-abort`** — rolls back, checks out `main`, returns debrief; does **not** edit the change folder |
 
 After abort, intent fixes happen only through **`/osf-propose`**, then a fresh **`/osf-apply-changes`** run.
