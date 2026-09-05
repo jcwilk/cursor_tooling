@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.6.0"
+OPENSPEC_FLOW_VERSION: "1.7.0"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow

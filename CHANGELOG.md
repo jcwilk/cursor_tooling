@@ -4,6 +4,17 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.7.0] — 2026-09-04
+
+### Changed
+
+- **BREAKING — OSF finish default** — successful finish is now verify → archive on the **working branch** → commit → push that branch. Default finish no longer checks out, merges into, or pushes the default branch. Use explicit `merge-to-default-branch: yes` in the finish directive when default-branch integration is intended.
+- **`osf-apply-finish`**, **`osf-apply-start`**, **`osf-apply-changes`**, **`persist`**, **`osf-propose`**, **`AGENTS.md`**, and **`OPENSPEC_FLOW.md`** updated for **archive-complete** vocabulary (living specs reconciled on the working branch) vs optional default-branch merge.
+
+### Notes for consumers
+
+Upgrading from 1.6.x: teams that relied on finish to merge into `main` automatically must pass `merge-to-default-branch: yes` or merge manually after the working branch is pushed.
+
 ## [1.6.0] — 2026-09-04
 
 ### Removed
