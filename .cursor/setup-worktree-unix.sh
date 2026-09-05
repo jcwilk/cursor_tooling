@@ -20,7 +20,6 @@ fi
 
 copy_paths=(
   ".env"
-  ".sleuths"
   ".venv"
 )
 

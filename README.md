@@ -13,8 +13,6 @@ This repository is a **small, portable reference** for running [OpenSpec](https:
 | **`.cursor/agents/osf-*.md`** | Task definitions for apply/finish/abort. |
 | **`.cursor/skills/persist/`** | Commit/push hygiene used by propose/finish flows. |
 | **`.cursor/skills/openspec-flow-install/`** | **Install or upgrade** this bundle into another repo (compare versions, copy files). |
-| **`.cursor/skills/sleuths/`** | Conversation sleuths — incremental summaries of local agent transcripts (`/sleuths`). |
-| **`scripts/build-local-tools.sh`** | One-time install for bundled skill CLIs (e.g. sleuth Python package). |
 
 Your **application** code and **`openspec/`** tree live in whatever project you attach this bundle to; initialize OpenSpec in that project with the upstream CLI when you are ready.
 
@@ -22,14 +20,12 @@ Your **application** code and **`openspec/`** tree live in whatever project you 
 
 - Node.js **20.19+** (for `npx @fission-ai/openspec@latest …`).
 - Cursor with **Task** subagents enabled.
-- **Python 3.11+** (for conversation sleuths) and an **inference endpoint** configured in gitignored `.sleuths/config.yaml` (required only when refreshing sleuths).
 
 ## Quick start (in a consumer project)
 
 1. Follow **`/openspec-flow-install`** (skill **`openspec-flow-install`**) to copy or refresh files from this reference into your project’s tree.
 2. Ensure **`OPENSPEC_FLOW.md`** at the project root records the **`OPENSPEC_FLOW_VERSION`** you installed (the install skill explains how to compare and detect drift).
 3. Use **`/osf-explore`** and **`/osf-propose`** with your project’s **`openspec/`** layout.
-4. Optionally run **`scripts/build-local-tools.sh`** and use **`/sleuths`** for conversation archaeology (see **`.cursor/skills/sleuths/SKILL.md`**).
 
 ## Versioning
 

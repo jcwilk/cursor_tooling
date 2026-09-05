@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.5.0"
+OPENSPEC_FLOW_VERSION: "1.6.0"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -91,7 +91,6 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 | **`/osf-apply-start`** | Subagent | Implements one approved change on the **current branch** (working branch). |
 | **`/osf-apply-finish`** | Subagent | Verify, archive, merge default branch, push. |
 | **`/osf-apply-abort`** | Subagent | Stop safely; preserve investigation; debrief human. |
-| **`/sleuths`** | Skill | Human-defined lenses over local agent transcripts; lazy refresh via configured inference endpoint. **Reference repo only** — in development; not propagated to consumer targets. |
 
 **`osf-apply-*`** MUST run via the Task tool; do not replay **`.cursor/agents/osf-apply-*.md`** in the parent thread (see **`osf-apply-changes`** and **`AGENTS.md`**).
 
