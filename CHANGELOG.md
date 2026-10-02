@@ -4,6 +4,16 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.7.1] — 2026-10-01
+
+### Changed
+
+- **BREAKING — `/osf-explore` lane** — explore is conversation-only: no create, edit, move, or delete of any repository file, including OpenSpec change artifacts. Settled decisions and explicit “update the proposal” requests must hand off to **`/osf-propose`** for durable capture. Living spec adds **Explore intent shaping is conversation-only**; **`osf-explore`** skill and **`OPENSPEC_FLOW.md`** capability row updated to match **`AGENTS.md`** shape-phase entry points.
+
+### Notes for consumers
+
+Upgrading from 1.7.0: teams that used explore with explicit capture to patch `proposal.md` or other change artifacts must route those edits through **`/osf-propose`** (or a same-message directive that explicitly invokes proposal shaping).
+
 ## [1.7.0] — 2026-09-04
 
 ### Changed

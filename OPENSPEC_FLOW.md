@@ -1,5 +1,5 @@
 ---
-OPENSPEC_FLOW_VERSION: "1.7.0"
+OPENSPEC_FLOW_VERSION: "1.7.1"
 OPENSPEC_CLI_PACKAGE: "@fission-ai/openspec"
 description: |
   Human-facing overview plus machine-readable bundle version for the OpenSpec Flow
@@ -84,7 +84,7 @@ Each requirement uses `### Requirement: <Name>` and at least one `#### Scenario:
 
 | Slash / entry | Kind | Role |
 |---------------|------|------|
-| **`/osf-explore`** | Skill | Read-only thinking partner; no implementation. |
+| **`/osf-explore`** | Skill | Read-only thinking partner; conversation only — no file writes (including change artifacts under `openspec/changes/`). Durable capture via **`/osf-propose`**. |
 | **`/osf-propose`** | Skill | Create or refine a change under `openspec/changes/<name>/`, validate, persist. |
 | **`/osf-explain`** | Skill | Short fixed debrief: metadata → **Spec delta shape** → **Ambiguities** → **Apply scope at shipping** → **Quick read** → **Decide**. |
 | **`/osf-apply-changes`** | Skill | Spawns **`osf-apply-start`** (Task-only) workers. |
