@@ -126,6 +126,8 @@ Inside a change, `specs/<domain>/spec.md` is a **delta**, never a full spec. Use
 - **`## MODIFIED Requirements`** — replacement behavior for an existing requirement; replaces on archive. Note the previous wording in parentheses for reviewer context.
 - **`## REMOVED Requirements`** — deprecated behavior; deleted on archive. Note why.
 
+To change a scenario title, remove that requirement and add a replacement under a different requirement header. Do not change the title inside `## MODIFIED Requirements`. The same header in both `REMOVED` and `ADDED` is rejected.
+
 Under each section, the same `### Requirement:` + `#### Scenario:` shape as a living spec. **`/osf-apply-finish`** is what merges these into `openspec/specs/` at archive time.
 
 ## Pre-flight

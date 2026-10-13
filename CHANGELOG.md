@@ -4,6 +4,12 @@ All notable changes to this **OpenSpec Flow reference bundle** (docs under this 
 
 The **canonical bundle version** for install/upgrade checks is **`OPENSPEC_FLOW_VERSION`** in the YAML front matter of **`OPENSPEC_FLOW.md`**. This file is a human-readable history; when you cut a release, **bump `OPENSPEC_FLOW_VERSION` and add an entry below** so consumers can compare versions.
 
+## [1.7.2] — 2026-10-12
+
+### Changed
+
+- **`/osf-propose` scenario titles** — to change a scenario title, remove the requirement and add a replacement under a different requirement header. Do not change the title inside `## MODIFIED Requirements`. The same header in both `REMOVED` and `ADDED` is rejected.
+
 ## [1.7.1] — 2026-10-01
 
 ### Changed
